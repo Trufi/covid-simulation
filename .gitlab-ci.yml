@@ -1,0 +1,20 @@
+stages:
+    - build
+
+build:
+    stage: build
+    image: node:12
+    script:
+        - node -v
+        - npm -v
+        - npm ci
+        - npm run data
+        - npm run build
+    tags:
+        - 2gis
+        - docker
+    artifacts:
+        paths:
+            - dist
+            - index.html
+        expire_in: 30 days
