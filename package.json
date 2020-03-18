@@ -17,7 +17,7 @@
         "start": "npm run dev",
         "build": "webpack --production",
         "dev": "webpack-dev-server",
-        "data": "ts-node -O \"{\\\"module\\\": \\\"commonjs\\\"}\" data",
+        "data": "node data/hook.js",
         "lint": "tslint 'src/**/*.ts'",
         "prettier": "prettier --check \"./**/*.{ts,tsx,js,json,html,css}\"",
         "test": "npm run lint && npm run prettier && npm run build"

@@ -1,5 +1,6 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import { createGraph } from './graph';
 
 const sep = ';';
 
@@ -31,9 +32,11 @@ const convertedData = data.map((edge) => ({
 
 console.log(convertedData[0]);
 
+const graph = createGraph(convertedData);
+
 const outDir = path.join(__dirname, '../dist');
 fs.mkdirpSync(outDir);
-fs.writeJsonSync(path.join(outDir, '/data.json'), convertedData);
+fs.writeJsonSync(path.join(outDir, '/data.json'), graph);
 
 function parserLineString(s: string) {
     return s
