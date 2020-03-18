@@ -1,25 +1,11 @@
-// declare const mapgl: any;
 import '@2gis/gl-matrix';
+import KDBush from 'kdbush';
 import * as vec2 from '@2gis/gl-matrix/vec2';
-import { projectGeoToMap, clamp } from './utils';
-import { Graph, GraphEdge, GraphVertex } from '../data/graph';
-
-const defaultMapOptions = {
-    center: [82.920412, 55.030111],
-    zoom: 12,
-};
-
-// const map = ((window as any).map = new mapgl.Map('map', {
-//     ...defaultMapOptions,
-//     key: '042b5b75-f847-4f2a-b695-b5f58adc9dfd',
-//     zoomControl: false,
-// }));
-
-const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-const size = Math.min(window.innerWidth, window.innerHeight);
-canvas.width = size;
-canvas.height = size;
-const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+import { clamp, projectGeoToMap } from './utils';
+import { Graph, GraphVertex } from '../data/graph';
+import { draw2d } from './2d';
+import { draw3d } from './3d';
+import { config } from './config';
 
 const statsCanvas = document.getElementById('stats') as HTMLCanvasElement;
 const statsCtx = statsCanvas.getContext('2d') as CanvasRenderingContext2D;
@@ -33,23 +19,6 @@ interface Stat {
     immune: number;
 }
 
-const bounds = { min: [0, 0], max: [0, 0] };
-const mapCenter = projectGeoToMap(defaultMapOptions.center);
-const range = 800000;
-const rangeVec2 = [range, range];
-
-const diseaseRange = 15000;
-const immuneTime = 15000;
-const humansCount = 3000;
-const humanDiseaseCount = 50;
-
-const speed = 100000;
-const colors: { [key in Human['state']]: number[] } = {
-    first: [170, 198, 202],
-    disease: [187, 100, 29],
-    immune: [203, 138, 192],
-};
-
 const stats: Stat[] = [];
 
 let graph: Graph = {
@@ -57,7 +26,9 @@ let graph: Graph = {
     edges: [],
 };
 
-interface Human {
+const mapCenter = projectGeoToMap([82.920412, 55.030111]);
+
+export interface Human {
     coords: number[];
     edge: number;
     forward: boolean;
@@ -72,38 +43,24 @@ fetch('./dist/data.json')
     .then((r) => r.json())
     .then((data: Graph) => {
         console.log(data);
-
         graph = data;
 
-        // bounds = findBounds(data);
-        vec2.sub(bounds.min, mapCenter, rangeVec2);
-        vec2.add(bounds.max, mapCenter, rangeVec2);
-        // data = data.slice(0, 5000);
+        const verticesInRange = graph.vertices.filter(
+            (vertex) => vec2.dist(vertex.coords, mapCenter) < config.dataRange * 1000,
+        );
 
-        graph.edges.forEach((edge) => {
-            edge.geometry.forEach((vertex) => {
-                const p = projectGeoToMap(vertex);
-                vec2.copy(vertex, p);
-            });
-        });
+        if (!verticesInRange.length) {
+            return;
+        }
 
-        graph.vertices.forEach((v) => {
-            const p = projectGeoToMap(v.coords);
-            vec2.copy(v.coords, p);
-        });
-
-        for (let i = 0; i < humansCount; i++) {
-            spawnHuman(i < humanDiseaseCount);
+        for (let i = 0; i < config.humansCount; i++) {
+            spawnHuman(verticesInRange, i < config.diseaseStartCount);
         }
     });
 
-function spawnHuman(disease: boolean) {
-    const id = Math.floor(Math.random() * graph.vertices.length);
-    const vertexFrom = graph.vertices[id];
-    if (!vertexFrom) {
-        console.log('aaaa not found random vertex');
-        return;
-    }
+function spawnHuman(vertices: GraphVertex[], disease: boolean) {
+    const id = Math.floor(Math.random() * vertices.length);
+    const vertexFrom = vertices[id];
 
     const vertexEdgeIndex = Math.floor(Math.random() * vertexFrom.edges.length);
     const edgeIndex = vertexFrom.edges[vertexEdgeIndex];
@@ -124,57 +81,8 @@ function spawnHuman(disease: boolean) {
     humans.push(human);
 }
 
-function renderLoop() {
-    requestAnimationFrame(renderLoop);
-    const now = Date.now();
-    ctx.clearRect(0, 0, size, size);
-    drawGraph();
-    drawHumans(now);
-
-    findNearHumans(now);
-
-    collectStats();
-    drawStats();
-}
-renderLoop();
-
-function collectStats() {
-    const stat: Stat = {
-        disease: 0,
-        first: 0,
-        immune: 0,
-    };
-    humans.forEach((h) => stat[h.state]++);
-    stats.push(stat);
-}
-
-function findNearHumans(now: number) {
-    for (let i = 0; i < humans.length - 1; i++) {
-        const a = humans[i];
-        for (let j = i + 1; j < humans.length; j++) {
-            const b = humans[j];
-
-            if (a.state === 'disease' && b.state === 'first') {
-                if (vec2.dist(a.coords, b.coords) < diseaseRange) {
-                    b.state = 'disease';
-                    b.diseaseStart = now;
-                }
-            } else if (a.state === 'first' && b.state === 'disease') {
-                if (vec2.dist(a.coords, b.coords) < diseaseRange) {
-                    a.state = 'disease';
-                    a.diseaseStart = now;
-                }
-            }
-        }
-    }
-}
-
-function drawHumans(now: number) {
-    humans.forEach((h) => drawHuman(h, now));
-}
-
-function drawHuman(human: Human, now: number) {
-    const distance = (speed * (now - human.startTime)) / 1000;
+function updateHuman(human: Human, now: number) {
+    const distance = config.humanSpeed * (now - human.startTime);
 
     let passed = 0;
     let ended = true;
@@ -215,53 +123,63 @@ function drawHuman(human: Human, now: number) {
         human.forward = newHumanEdge.a === endVertexIndex;
     }
 
-    if (human.state === 'disease' && now - human.diseaseStart > immuneTime) {
+    if (human.state === 'disease' && now - human.diseaseStart > config.immunityAfter * 1000) {
         human.state = 'immune';
     }
-
-    const size = 10;
-    const point = drawProject(human.coords);
-
-    ctx.fillStyle = `rgba(${colors[human.state].join(',')}, 0.8)`;
-    ctx.fillRect(point[0] - size / 2, point[1] - size / 2, size, size);
 }
 
-function drawGraph() {
-    graph.edges.forEach(drawEdge);
+function renderLoop() {
+    requestAnimationFrame(renderLoop);
+    const now = Date.now();
 
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
-    graph.vertices.forEach(drawVertex);
-}
+    findNearHumans(now);
 
-function drawVertex(vertex: GraphVertex) {
-    const size = 4;
-    const point = drawProject(vertex.coords);
-    ctx.fillRect(point[0] - size / 2, point[1] - size / 2, size, size);
-}
+    humans.forEach((h) => updateHuman(h, now));
 
-function drawEdge(edge: GraphEdge) {
-    const points = edge.geometry;
-
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.beginPath();
-
-    const firstPoint = drawProject(points[0]);
-    ctx.moveTo(firstPoint[0], firstPoint[1]);
-    for (let i = 1; i < points.length; i++) {
-        const point = drawProject(points[i]);
-        ctx.lineTo(point[0], point[1]);
+    if (config.debugGraph) {
+        draw2d(graph, humans);
+    } else {
+        draw3d(graph, humans);
     }
-    ctx.stroke();
 
-    ctx.closePath();
+    collectStats();
+    drawStats();
+}
+renderLoop();
+
+function collectStats() {
+    const stat: Stat = {
+        disease: 0,
+        first: 0,
+        immune: 0,
+    };
+    humans.forEach((h) => stat[h.state]++);
+    stats.push(stat);
 }
 
-function drawProject(p: number[]) {
-    const { min, max } = bounds;
-    return [
-        ((p[0] - min[0]) / (max[0] - min[0])) * size,
-        ((p[1] - min[1]) / (max[1] - min[1])) * size,
-    ];
+function findNearHumans(now: number) {
+    const kd = new KDBush(
+        humans.filter((h) => h.state === 'disease'),
+        (h) => h.coords[0],
+        (h) => h.coords[1],
+        64,
+        Int32Array,
+    );
+
+    humans.forEach((h) => {
+        if (h.state !== 'first') {
+            return;
+        }
+
+        const nearestHumans = kd
+            .within(h.coords[0], h.coords[1], config.diseaseRange * 100)
+            .map((index) => humans[index]);
+
+        if (nearestHumans.length) {
+            h.state = 'disease';
+            h.diseaseStart = now;
+        }
+    });
 }
 
 function drawStats() {
@@ -283,15 +201,15 @@ function drawStats() {
         if (!s) {
             return;
         }
-        ctx.fillStyle = `rgba(${colors.first.join(',')}, 1)`;
+        ctx.fillStyle = `rgba(${config.colors.first.join(',')}, 1)`;
 
-        ctx.fillRect(x * width, 0, (x + 1) * width, statsSize[1]);
+        ctx.fillRect(x * width, 0, width, statsSize[1]);
 
-        ctx.fillStyle = `rgba(${colors.immune.join(',')}, 1)`;
-        ctx.fillRect(x * width, 0, (x + 1) * width, (s.immune / count) * statsSize[1]);
+        ctx.fillStyle = `rgba(${config.colors.immune.join(',')}, 1)`;
+        ctx.fillRect(x * width, 0, width, (s.immune / count) * statsSize[1]);
 
         const diseaseH = (s.disease / count) * statsSize[1];
-        ctx.fillStyle = `rgba(${colors.disease.join(',')}, 1)`;
-        ctx.fillRect(x * width, statsSize[1] - diseaseH, (x + 1) * width, diseaseH);
+        ctx.fillStyle = `rgba(${config.colors.disease.join(',')}, 1)`;
+        ctx.fillRect(x * width, statsSize[1] - diseaseH, width, diseaseH);
     }
 }

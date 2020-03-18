@@ -1,6 +1,7 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { createGraph } from './graph';
+import { projectGeoToMap } from '../src/utils';
 
 const sep = ';';
 
@@ -27,7 +28,7 @@ const convertedData = data.map((edge) => ({
     class: Number(edge.class),
     in: parseArray(edge.in_macro_ids),
     out: parseArray(edge.out_macro_ids),
-    vertices: parserLineString(edge.geom),
+    vertices: parserLineString(edge.geom).map((v) => projectGeoToMap(v).map(Math.floor)),
 }));
 
 console.log(convertedData[0]);

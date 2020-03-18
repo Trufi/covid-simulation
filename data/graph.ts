@@ -26,8 +26,10 @@ export interface Graph {
     edges: GraphEdge[]; // Просто список всех
 }
 
+const nearRadius = 100;
+
 function equalPoints(a: number[], b: number[]) {
-    return vec2.dist(a, b) < 0.0001;
+    return vec2.dist(a, b) < nearRadius;
 }
 
 function hasVertexSameEdge(graph: Graph, vertex: GraphVertex, edge: GraphEdge) {
@@ -64,14 +66,14 @@ function findVertex(graph: Graph, point: number[]) {
 
     for (const id in graph.vertices) {
         const vertex = graph.vertices[id];
-        const distance = geoPointsDistance(vertex.coords, point);
+        const distance = vec2.dist(vertex.coords, point);
         if (minDistance > distance) {
             minDistance = distance;
             nearestVertex = vertex;
         }
     }
 
-    if (nearestVertex && minDistance < 50) {
+    if (nearestVertex && minDistance < nearRadius) {
         return nearestVertex;
     }
 }
@@ -122,16 +124,4 @@ export function createGraph(edges: Edge[]) {
     });
 
     return graph;
-}
-
-function geoPointsDistance(lngLat1: number[], lngLat2: number[]): number {
-    const R = 6371000;
-    const rad = Math.PI / 180;
-    const lat1 = lngLat1[1] * rad;
-    const lat2 = lngLat2[1] * rad;
-    const sinDLat = Math.sin(((lngLat2[1] - lngLat1[1]) * rad) / 2);
-    const sinDLon = Math.sin(((lngLat2[0] - lngLat1[0]) * rad) / 2);
-    const a = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
 }
