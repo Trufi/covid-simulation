@@ -2,6 +2,8 @@ import * as dat from 'dat.gui';
 import { parseQuery } from './utils';
 
 export const config: { [key: string]: any } = {
+    randomSeed: 15,
+
     lng: 82.920412,
     lat: 55.030111,
     zoom: 12,
@@ -10,6 +12,8 @@ export const config: { [key: string]: any } = {
 
     diseaseRange: 30,
     immunityAfter: 15,
+    waitAtHome: 1,
+    timeOutside: 10,
     humansCount: 4000,
     humansStop: 0,
     diseaseStartCount: 50,
@@ -55,8 +59,11 @@ const onChange = () =>
     }, 1000);
 
 export const gui = new dat.GUI();
+gui.add(config, 'randomSeed').onChange(onChange);
 gui.add(config, 'diseaseRange', 1, 500, 1).onChange(onChange);
 gui.add(config, 'immunityAfter', 1, 240, 1).onChange(onChange);
+gui.add(config, 'waitAtHome', 0, 100, 0.1).onChange(onChange);
+gui.add(config, 'timeOutside', 0, 100, 0.1).onChange(onChange);
 gui.add(config, 'humansCount', 0, 25000, 1).onChange(onChange);
 gui.add(config, 'diseaseStartCount', 0, 5000, 1).onChange(onChange);
 gui.add(config, 'humansStop', 0, 1, 0.01).onChange(onChange);

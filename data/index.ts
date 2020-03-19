@@ -2,6 +2,7 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import { createGraph } from './graph';
 import { projectGeoToMap } from '../src/utils';
+import { getBuildings } from './buildings';
 
 const sep = ';';
 
@@ -33,7 +34,9 @@ const convertedData = data.map((edge) => ({
 
 console.log(convertedData[0]);
 
-const graph = createGraph(convertedData, {
+const buildings = getBuildings();
+
+const graph = createGraph(convertedData, buildings, {
     center: [82.920412, 55.030111],
     range: 25000,
 });
@@ -47,7 +50,7 @@ graph.vertices.forEach((v, i) => {
     if (i === 0) {
         console.log(v.coords);
     }
-    (v as any).id = undefined;
+    // (v as any).id = undefined;
 });
 graph.edges.forEach(
     (e) =>

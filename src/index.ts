@@ -6,6 +6,14 @@ import { Graph, GraphVertex } from '../data/graph';
 import { draw3d } from './3d';
 import { config } from './config';
 
+const random = (() => {
+    let seed = config.randomSeed;
+    return () => {
+        seed = (seed * 16807) % 2147483647;
+        return (seed - 1) / 2147483646;
+    };
+})();
+
 const statsCanvas = document.getElementById('stats') as HTMLCanvasElement;
 const statsCtx = statsCanvas.getContext('2d') as CanvasRenderingContext2D;
 const statsSize = [200, 70];
@@ -35,6 +43,7 @@ export interface Human {
     state: 'first' | 'disease' | 'immune';
     diseaseStart: number;
     stoped: boolean;
+    homeTimeStart: number;
 }
 
 const humans: Human[] = [];
@@ -75,16 +84,23 @@ fetch('./dist/data.json')
     });
 
 function spawnHuman(vertices: GraphVertex[], disease: boolean, stoped: boolean) {
-    const id = Math.floor(Math.random() * vertices.length);
+    const id = Math.floor(random() * vertices.length);
     const vertexFrom = vertices[id];
 
-    const vertexEdgeIndex = Math.floor(Math.random() * vertexFrom.edges.length);
+    const vertexEdgeIndex = Math.floor(random() * vertexFrom.edges.length);
     const edgeIndex = vertexFrom.edges[vertexEdgeIndex];
     const edge = graph.edges[edgeIndex];
 
     const forward = edge.a === vertexFrom.id;
 
     const now = Date.now();
+
+    let homeTimeStart = now - config.waitAtHome * 1000 - random() * config.timeOutside * 1000;
+
+    if (vertexFrom.type === 'house') {
+        homeTimeStart = now - random() * config.waitAtHome * 1000;
+    }
+
     const human: Human = {
         coords: vertexFrom.coords.slice(0),
         forward,
@@ -93,6 +109,7 @@ function spawnHuman(vertices: GraphVertex[], disease: boolean, stoped: boolean) 
         state: disease ? 'disease' : 'first',
         diseaseStart: now,
         stoped,
+        homeTimeStart,
     };
 
     humans.push(human);
@@ -105,7 +122,7 @@ function updateHuman(human: Human, now: number) {
         human.state = 'immune';
     }
 
-    if (human.stoped) {
+    if (human.stoped || now - human.homeTimeStart < config.waitAtHome * 1000) {
         return;
     }
 
@@ -134,19 +151,44 @@ function updateHuman(human: Human, now: number) {
         // найти следующую цель
         const endVertexIndex = human.forward ? humanEdge.b : humanEdge.a;
         const endVertex = graph.vertices[endVertexIndex];
-        const prevEdgeIndex = endVertex.edges.indexOf(human.edge);
 
-        const random = Math.random();
-        let edgeIndex = Math.floor(random * endVertex.edges.length);
-        if (endVertex.edges.length > 1 && edgeIndex === prevEdgeIndex) {
-            edgeIndex = (edgeIndex + 1) % endVertex.edges.length;
+        if (endVertex.type === 'house') {
+            human.homeTimeStart = now;
+            vec2.copy(human.coords, endVertex.coords);
         }
-        human.edge = endVertex.edges[edgeIndex];
+
+        const prevEdgeIndex = endVertex.edges.indexOf(human.edge);
+        human.edge = chooseNextEdge(prevEdgeIndex, endVertex.edges, human, now);
         human.startTime = now;
 
         const newHumanEdge = graph.edges[human.edge];
         human.forward = newHumanEdge.a === endVertexIndex;
     }
+}
+
+function chooseNextEdge(prevEdgeIndex: number, edgeIndices: number[], human: Human, now: number) {
+    let edgeIndex = Math.floor(random() * edgeIndices.length);
+
+    // Если выбралась предыдущая грань, то попробуй выбрать другую
+    if (edgeIndices.length > 1 && edgeIndex === prevEdgeIndex) {
+        edgeIndex = (edgeIndex + 1) % edgeIndices.length;
+    }
+
+    // Если чел недавно был в доме, то попробуй выбрать другую грань
+    if (
+        edgeIndices.length > 1 &&
+        now - (human.homeTimeStart + config.waitAtHome * 1000) < config.timeOutside * 1000 &&
+        graph.edges[edgeIndices[edgeIndex]].type === 'house'
+    ) {
+        edgeIndex = (edgeIndex + 1) % edgeIndices.length;
+
+        // Если выбралась предыдущая грань, то попробуй выбрать другую
+        if (edgeIndices.length > 1 && edgeIndex === prevEdgeIndex) {
+            edgeIndex = (edgeIndex + 1) % edgeIndices.length;
+        }
+    }
+
+    return edgeIndices[edgeIndex];
 }
 
 function renderLoop() {
