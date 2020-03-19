@@ -3,7 +3,6 @@ import KDBush from 'kdbush';
 import * as vec2 from '@2gis/gl-matrix/vec2';
 import { clamp, projectGeoToMap } from './utils';
 import { Graph, GraphVertex } from '../data/graph';
-import { draw2d } from './2d';
 import { draw3d } from './3d';
 import { config } from './config';
 
@@ -35,6 +34,7 @@ export interface Human {
     startTime: number;
     state: 'first' | 'disease' | 'immune';
     diseaseStart: number;
+    stoped: boolean;
 }
 
 const humans: Human[] = [];
@@ -45,8 +45,20 @@ fetch('./dist/data.json')
         console.log(data);
         graph = data;
 
+        const roundFactor = 100;
+        graph.vertices.forEach((v) => {
+            v.coords[0] = v.coords[0] * roundFactor;
+            v.coords[1] = v.coords[1] * roundFactor;
+        });
+        graph.edges.forEach((e) =>
+            e.geometry.forEach((v) => {
+                v[0] = v[0] * roundFactor;
+                v[1] = v[1] * roundFactor;
+            }),
+        );
+
         const verticesInRange = graph.vertices.filter(
-            (vertex) => vec2.dist(vertex.coords, mapCenter) < config.dataRange * 1000,
+            (vertex) => vec2.dist(vertex.coords, mapCenter) < config.dataRange * 100,
         );
 
         if (!verticesInRange.length) {
@@ -54,11 +66,15 @@ fetch('./dist/data.json')
         }
 
         for (let i = 0; i < config.humansCount; i++) {
-            spawnHuman(verticesInRange, i < config.diseaseStartCount);
+            spawnHuman(
+                verticesInRange,
+                i < config.diseaseStartCount,
+                i < config.humansCount * config.humansStop,
+            );
         }
     });
 
-function spawnHuman(vertices: GraphVertex[], disease: boolean) {
+function spawnHuman(vertices: GraphVertex[], disease: boolean, stoped: boolean) {
     const id = Math.floor(Math.random() * vertices.length);
     const vertexFrom = vertices[id];
 
@@ -76,6 +92,7 @@ function spawnHuman(vertices: GraphVertex[], disease: boolean) {
         startTime: now,
         state: disease ? 'disease' : 'first',
         diseaseStart: now,
+        stoped,
     };
 
     humans.push(human);
@@ -83,6 +100,14 @@ function spawnHuman(vertices: GraphVertex[], disease: boolean) {
 
 function updateHuman(human: Human, now: number) {
     const distance = config.humanSpeed * (now - human.startTime);
+
+    if (human.state === 'disease' && now - human.diseaseStart > config.immunityAfter * 1000) {
+        human.state = 'immune';
+    }
+
+    if (human.stoped) {
+        return;
+    }
 
     let passed = 0;
     let ended = true;
@@ -112,19 +137,15 @@ function updateHuman(human: Human, now: number) {
         const prevEdgeIndex = endVertex.edges.indexOf(human.edge);
 
         const random = Math.random();
-        let edgeIndex = Math.floor(random * (endVertex.edges.length - 1));
+        let edgeIndex = Math.floor(random * endVertex.edges.length);
         if (endVertex.edges.length > 1 && edgeIndex === prevEdgeIndex) {
-            edgeIndex = (edgeIndex + 1) % (endVertex.edges.length - 1);
+            edgeIndex = (edgeIndex + 1) % endVertex.edges.length;
         }
         human.edge = endVertex.edges[edgeIndex];
         human.startTime = now;
 
         const newHumanEdge = graph.edges[human.edge];
         human.forward = newHumanEdge.a === endVertexIndex;
-    }
-
-    if (human.state === 'disease' && now - human.diseaseStart > config.immunityAfter * 1000) {
-        human.state = 'immune';
     }
 }
 
@@ -136,11 +157,7 @@ function renderLoop() {
 
     humans.forEach((h) => updateHuman(h, now));
 
-    if (config.debugGraph) {
-        draw2d(graph, humans);
-    } else {
-        draw3d(graph, humans);
-    }
+    draw3d(graph, humans);
 
     collectStats();
     drawStats();

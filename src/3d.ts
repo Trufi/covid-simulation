@@ -1,9 +1,9 @@
+import { Polyline } from '@2gis/jakarta';
+import * as vec2 from '@2gis/gl-matrix/vec2';
+import { config, gui, updateQuery } from './config';
 import { Graph } from '../data/graph';
 import { Human } from '.';
-import { projectMapToGeo } from './utils';
-import { config } from './config';
-
-declare const mapgl: any;
+import { projectMapToGeo, projectGeoToMap } from './utils';
 
 function getCircleIcon(color: string, radius: number): string {
     const icon = `<svg xmlns="http://www.w3.org/2000/svg" width="${radius * 2}" height="${radius *
@@ -13,7 +13,9 @@ function getCircleIcon(color: string, radius: number): string {
 }
 
 let markersInited = false;
-const markers: Array<{ marker: any; state: Human['state'] }> = [];
+const markers: Array<{ marker: mapgl.Marker; state: Human['state'] }> = [];
+const edges: Polyline[] = [];
+const vertices: mapgl.Marker[] = [];
 
 const alpha = 0.8;
 const icons: { [key in Human['state']]: string } = {
@@ -22,15 +24,35 @@ const icons: { [key in Human['state']]: string } = {
     immune: getCircleIcon(`rgba(${config.colors.immune.join(',')}, ${alpha})`, 5),
 };
 
-let map: any;
+const map: mapgl.Map = new mapgl.Map('map', {
+    center: [config.lng, config.lat],
+    zoom: config.zoom,
+    rotation: config.rotation,
+    pitch: config.pitch,
+    key: '042b5b75-f847-4f2a-b695-b5f58adc9dfd',
+    zoomControl: false,
+});
 
-export function draw3d(_graph: Graph, humans: Human[]) {
+let graph: Graph;
+
+const round = (x: number) => String(Math.round(x * 100) / 100);
+
+export function draw3d(g: Graph, humans: Human[]) {
     if (!markersInited && humans.length) {
-        map = (window as any).map = new mapgl.Map('map', {
-            center: [82.920412, 55.030111],
-            zoom: 12,
-            key: '042b5b75-f847-4f2a-b695-b5f58adc9dfd',
-            zoomControl: false,
+        graph = g;
+
+        map.on('moveend', () => {
+            const center = map.getCenter();
+            const zoom = map.getZoom();
+            const precision = coordinatesPrecision(zoom);
+
+            config.lng = center[0].toFixed(precision);
+            config.lat = center[1].toFixed(precision);
+            config.zoom = round(zoom);
+            config.rotation = round(map.getRotation());
+            config.pitch = round(map.getPitch());
+
+            updateQuery();
         });
 
         humans.forEach((h) => {
@@ -42,6 +64,7 @@ export function draw3d(_graph: Graph, humans: Human[]) {
                 state: h.state,
             });
         });
+
         markersInited = true;
     }
 
@@ -58,4 +81,54 @@ export function draw3d(_graph: Graph, humans: Human[]) {
             m.state = human.state;
         }
     });
+}
+
+gui.add(
+    {
+        drawEdges: () => {
+            if (!graph) {
+                return;
+            }
+
+            edges.forEach((p) => p.remove());
+            edges.length = 0;
+            vertices.forEach((m) => m.destroy());
+            vertices.length = 0;
+
+            const center = projectGeoToMap(map.getCenter());
+
+            const nearRadius = 300000;
+
+            graph.vertices
+                .filter((e) => vec2.dist(e.coords, center) < nearRadius)
+                .forEach((e) => {
+                    const marker = new mapgl.Marker(map, {
+                        coordinates: projectMapToGeo(e.coords),
+                        icon: getCircleIcon('#ff000077', 5),
+                    });
+                    marker.on('click', () => {
+                        console.log('vertex', e);
+                    });
+                    vertices.push(marker);
+                });
+
+            graph.edges
+                .filter((e) => e.geometry.some((p) => vec2.dist(p, center) < nearRadius))
+                .forEach((e) => {
+                    const polyline = new Polyline(map._impl, {
+                        coordinates: e.geometry.map(projectMapToGeo),
+                        color: '#77000000',
+                    });
+                    polyline.on('click', () => {
+                        console.log('edge', e);
+                    });
+                    edges.push(polyline);
+                });
+        },
+    },
+    'drawEdges',
+);
+
+function coordinatesPrecision(zoom: number): number {
+    return Math.ceil((zoom * Math.LN2 + Math.log(256 / 360 / 0.5)) / Math.LN10);
 }

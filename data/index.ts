@@ -33,7 +33,29 @@ const convertedData = data.map((edge) => ({
 
 console.log(convertedData[0]);
 
-const graph = createGraph(convertedData);
+const graph = createGraph(convertedData, {
+    center: [82.920412, 55.030111],
+    range: 25000,
+});
+
+const roundFactor = 100;
+graph.vertices.forEach((v, i) => {
+    if (i === 0) {
+        console.log(v.coords);
+    }
+    v.coords = [Math.round(v.coords[0] / roundFactor), Math.round(v.coords[1] / roundFactor)];
+    if (i === 0) {
+        console.log(v.coords);
+    }
+    (v as any).id = undefined;
+});
+graph.edges.forEach(
+    (e) =>
+        (e.geometry = e.geometry.map((v) => [
+            Math.round(v[0] / roundFactor),
+            Math.round(v[1] / roundFactor),
+        ])),
+);
 
 const outDir = path.join(__dirname, '../dist');
 fs.mkdirpSync(outDir);
