@@ -2,7 +2,7 @@ import { SimulationStat } from '../src';
 
 const statsCanvas = document.getElementById('stats') as HTMLCanvasElement;
 const statsCtx = statsCanvas.getContext('2d') as CanvasRenderingContext2D;
-const statsSize = [200, 70];
+const statsSize = [600, 70];
 statsCanvas.width = statsSize[0];
 statsCanvas.height = statsSize[1];
 
@@ -23,15 +23,21 @@ export function drawStats(stats: SimulationStat[]) {
     const count = firstStat.disease + firstStat.virgin + firstStat.immune;
 
     const width = 1;
+    const newColumnInMs = 100;
+
+    let lastColumnTime = 0;
+    const statsToView: SimulationStat[] = [];
+    for (let i = 0; i < stats.length; i++) {
+        const stat = stats[i];
+        if (stat.time - lastColumnTime > newColumnInMs) {
+            statsToView.push(stat);
+            lastColumnTime = stat.time;
+        }
+    }
 
     const columnsCount = statsSize[0] / width;
     for (let x = 0; x < columnsCount; x++) {
-        let index = x;
-        if (stats.length > columnsCount) {
-            index = Math.floor((x / columnsCount) * stats.length);
-        }
-
-        const s = stats[index];
+        const s = statsToView[x];
         if (!s) {
             return;
         }

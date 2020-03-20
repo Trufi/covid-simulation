@@ -23,7 +23,6 @@ export class Simulation {
     private graph?: Graph;
     private random: () => number;
     private humans: Human[];
-    private startTime: number;
     private stats: SimulationStat[];
     private lastUpdate: number;
     private simulationTime: number;
@@ -32,7 +31,6 @@ export class Simulation {
         this.render = new EasyRender(map, Marker);
         this.random = createRandomFunction(this.options.randomSeed);
         this.humans = [];
-        this.startTime = 0;
         this.stats = [];
         this.lastUpdate = Date.now();
         this.simulationTime = 0;
@@ -83,7 +81,6 @@ export class Simulation {
         this.render.setPoints([]);
         this.random = createRandomFunction(this.options.randomSeed);
         this.humans = [];
-        this.startTime = Date.now();
         this.stats = [];
         this.graph = undefined;
         this.simulationTime = 0;
@@ -149,7 +146,7 @@ export class Simulation {
 
     private collectStat() {
         const stat: SimulationStat = {
-            time: this.simulationTime - this.startTime,
+            time: this.simulationTime,
             virgin: 0,
             disease: 0,
             immune: 0,
