@@ -26,13 +26,10 @@ module.exports = (_, args) => {
             extensions: ['.ts', '.js'],
         },
 
-        entry: {
-            simulation: './src/index.ts',
-            demo: './demo/index.ts',
-        },
+        entry: './src/index.ts',
 
         output: {
-            filename: '[name].js',
+            filename: 'simulation.js',
             path: path.resolve(__dirname, 'dist'),
             publicPath: '/dist',
             libraryTarget: 'commonjs2',
@@ -56,5 +53,15 @@ module.exports = (_, args) => {
         },
     };
 
-    return library;
+    const demo = {
+        ...library,
+        entry: './demo/index.ts',
+        output: {
+            filename: 'demo.js',
+            path: path.resolve(__dirname, 'dist'),
+            publicPath: '/dist',
+        },
+    };
+
+    return [library, demo];
 };
