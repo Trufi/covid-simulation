@@ -89,6 +89,9 @@ export function createGraph(edges: Edge[], buildings: Building[], options: Creat
     const graph: Graph = {
         vertices: [],
         edges: [],
+        center: mapCenter.map(Math.floor),
+        min: [Infinity, Infinity],
+        max: [-Infinity, -Infinity],
     };
 
     edges.forEach((edge) => {
@@ -117,7 +120,6 @@ export function createGraph(edges: Edge[], buildings: Building[], options: Creat
 
         const edgeIndex = graph.edges.length;
         const graphEdge: GraphEdge = {
-            // id: edge.id,
             geometry: edge.vertices,
             a: startVertex.id,
             b: endVertex.id,
@@ -140,6 +142,10 @@ export function createGraph(edges: Edge[], buildings: Building[], options: Creat
     });
 
     addBuildings(graph, buildings, mapCenter, range);
+
+    markIsolatedEdges(graph);
+
+    findMinMax(graph);
 
     return graph;
 }
@@ -349,4 +355,41 @@ function getClosestPointOnLineSegment(
     } else {
         return [Math.round(point1[0] + param * C), Math.round(point1[1] + param * D)];
     }
+}
+
+function markIsolatedEdges(graph: Graph) {
+    let isolatedEdgesCount = 0;
+
+    for (let i = 0; i < graph.edges.length; i++) {
+        const edge = graph.edges[i];
+        if (
+            graph.vertices[edge.a].edges.length === 1 &&
+            graph.vertices[edge.b].edges.length === 1
+        ) {
+            isolatedEdgesCount++;
+            graph.edges[i].type = 'null';
+            graph.vertices[edge.a].type = 'null';
+            graph.vertices[edge.b].type = 'null';
+        }
+    }
+
+    console.log(`- Граней помечено как изолированные ${isolatedEdgesCount}`);
+}
+
+function findMinMax(graph: Graph) {
+    graph.vertices.forEach((v) => {
+        vec2.min(graph.min, graph.min, v.coords);
+        vec2.max(graph.max, graph.max, v.coords);
+    });
+    graph.edges.forEach((e) => {
+        e.geometry.forEach((c) => {
+            vec2.min(graph.min, graph.min, c);
+            vec2.max(graph.max, graph.max, c);
+        });
+    });
+
+    console.log(
+        `- Размер области в координатах карты [${graph.max[0] - graph.min[0]}, ${graph.max[1] -
+            graph.min[1]}]`,
+    );
 }

@@ -48,12 +48,12 @@ function convertCity(city: string) {
     console.log(`Successfully convert ${city} data in ${prettyMs(Date.now() - startTime)}\n`);
 }
 
-const cities = fs.readdirSync(path.join(__dirname, 'cities'));
-cities.forEach((city) => {
-    if (city === 'dubai') {
-        return;
-    }
-    convertCity(city);
-});
-// convertCity('dubai');
-// convertCity('spb');
+// const cities = fs.readdirSync(path.join(__dirname, 'cities'));
+// cities.forEach((city) => {
+//     if (city === 'dubai') {
+//         return;
+//     }
+//     convertCity(city);
+// });
+// // convertCity('omsk');
+convertCity('dubai');

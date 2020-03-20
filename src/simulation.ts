@@ -48,14 +48,16 @@ export class Simulation {
                 unpackGraph(graph);
                 this.graph = graph;
 
-                let verticesInRange = graph.vertices;
-
+                let verticesInRange: GraphVertex[];
                 if (filterOptions) {
                     const mapCenter = projectGeoToMap(filterOptions.center);
                     verticesInRange = graph.vertices.filter(
                         (vertex) =>
+                            vertex.type !== 'null' &&
                             vec2.dist(vertex.coords, mapCenter) < filterOptions.radius * 100,
                     );
+                } else {
+                    verticesInRange = graph.vertices.filter((v) => v.type !== 'null');
                 }
 
                 if (!verticesInRange.length) {

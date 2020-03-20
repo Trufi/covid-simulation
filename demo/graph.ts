@@ -8,6 +8,12 @@ import { Graph } from '../data/types';
 const edges: Polyline[] = [];
 const vertices: Marker[] = [];
 
+const vertexColor = '#ff000077';
+const isolatedVertexColor = '#0000ff55';
+
+const edgeColor = '#77000000';
+const isolatedEdgeColor = '#880000ff';
+
 export function drawGraph(map: MapClass, simulation: Simulation) {
     clearGraph();
 
@@ -19,9 +25,10 @@ export function drawGraph(map: MapClass, simulation: Simulation) {
     graph.vertices
         .filter((e) => vec2.dist(e.coords, center) < nearRadius)
         .forEach((e) => {
+            const color = e.type === 'null' ? isolatedVertexColor : vertexColor;
             const marker = new Marker(map, {
                 coordinates: projectMapToGeo(e.coords),
-                icon: getCircleIcon('#ff000077', 5),
+                icon: getCircleIcon(color, 4),
             });
             marker.on('click', () => {
                 console.log('vertex', e);
@@ -32,9 +39,10 @@ export function drawGraph(map: MapClass, simulation: Simulation) {
     graph.edges
         .filter((e) => e.geometry.some((p) => vec2.dist(p, center) < nearRadius))
         .forEach((e) => {
+            const color = e.type === 'null' ? isolatedEdgeColor : edgeColor;
             const polyline = new Polyline(map, {
                 coordinates: e.geometry.map(projectMapToGeo),
-                color: '#77000000',
+                color,
             });
             polyline.on('click', () => {
                 console.log('edge', e);
