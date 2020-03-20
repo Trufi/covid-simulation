@@ -65,7 +65,7 @@ const citySettings = {
 };
 
 const defaultSimulationFilterOptions = {
-    radius: 25000,
+    radius: 500000,
 };
 
 const simulationFilterOptions = { ...defaultSimulationFilterOptions };
