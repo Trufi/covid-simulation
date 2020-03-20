@@ -1,6 +1,6 @@
 {
     "name": "@webmaps/covid-simulation",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "Covid Simulation",
     "main": "dist/simulation.js",
     "typings": "dist/es6/src/index.d.ts",
