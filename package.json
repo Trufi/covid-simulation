@@ -23,6 +23,7 @@
         "test": "npm run lint && npm run prettier && npm run build"
     },
     "dependencies": {
+        "2gl": "^0.8.0",
         "@2gis/gl-matrix": "^2.4.6",
         "@types/dat.gui": "^0.7.5",
         "@types/kdbush": "^3.0.0",
@@ -32,7 +33,7 @@
         "tslib": "^1.10.0"
     },
     "devDependencies": {
-        "@2gis/jakarta": "https://gitlab.2gis.ru/WebMaps/jakarta/builds/artifacts/v12.5.0/raw/build.tar.gz?job=release",
+        "@2gis/jakarta": "https://gitlab.2gis.ru/WebMaps/jakarta/builds/artifacts/v12.4.0/raw/build.tar.gz?job=release",
         "@types/fs-extra": "^8.1.0",
         "fork-ts-checker-webpack-plugin": "^4.0.2",
         "fs-extra": "^8.1.0",

@@ -39,19 +39,9 @@ export function projectMapToGeo(mapPoint: number[]): number[] {
     return geoPoint;
 }
 
-export function parseQuery() {
-    const res: { [key: string]: string } = {};
-    const parts = location.search.slice(1);
-
-    if (parts === '') {
-        return res;
-    }
-
-    parts
-        .split('&')
-        .map((str) => str.split('='))
-        .forEach((couple) => {
-            res[couple[0]] = couple[1];
-        });
-    return res;
+export function createRandomFunction(seed: number) {
+    return () => {
+        seed = (seed * 16807) % 2147483647;
+        return (seed - 1) / 2147483646;
+    };
 }
