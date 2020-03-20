@@ -1,14 +1,15 @@
-import { MapClass } from '@2gis/jakarta';
+import { MapClass, Marker } from '@2gis/jakarta';
 import * as dat from 'dat.gui';
 
-import { SimulationOptions } from '../src/types';
+import { SimulationOptions, SimulationFilterOptions } from '../src/types';
 import { Simulation } from '../src';
 import { drawStats } from './stats';
 import { coordinatesPrecision, throttle, parseQuery } from './utils';
+import { drawGraph, clearGraph } from './graph';
 
 const defaultMapOptions = {
-    lng: 82.920412,
-    lat: 55.030111,
+    lng: 82.93024970970109,
+    lat: 55.01605852277987,
     zoom: 12,
     rotation: 0,
     pitch: 0,
@@ -30,12 +31,22 @@ const defaultSimulationOptions: Omit<SimulationOptions, 'dataUrl'> = {
 
 const simulationOptions = { ...defaultSimulationOptions };
 
-const dataUrlByCity = {
-    nsk: './assets/nsk.json',
+const citySettings = {
+    nsk: {
+        dataUrl: './assets/nsk.json',
+        center: [82.93024970970109, 55.01605852277987],
+    },
 };
 
+const defaultSimulationFilterOptions: SimulationFilterOptions = {
+    center: [82.93024970970109, 55.01605852277987],
+    radius: 25000,
+};
+
+const simulationFilterOptions = { ...defaultSimulationFilterOptions };
+
 const defaultCityOptions = {
-    city: 'nsk' as keyof typeof dataUrlByCity,
+    city: 'nsk' as keyof typeof citySettings,
 };
 
 const cityOptions = {
@@ -49,13 +60,18 @@ const map = new MapClass(document.getElementById('map') as HTMLDivElement, {
     pitch: mapOptions.pitch,
 });
 
-const simulation = new Simulation(map);
+map.on('click', (ev) => console.log(ev.lngLat));
+
+const simulation = new Simulation(map, Marker);
 
 function start() {
-    simulation.start({
-        ...simulationOptions,
-        dataUrl: dataUrlByCity[cityOptions.city],
-    });
+    simulation.start(
+        {
+            ...simulationOptions,
+            dataUrl: citySettings[cityOptions.city].dataUrl,
+        },
+        simulationFilterOptions,
+    );
 }
 
 function loop() {
@@ -83,6 +99,7 @@ const updateUrl = throttle(() => {
     [
         [mapOptions, defaultMapOptions],
         [simulationOptions, defaultSimulationOptions],
+        [simulationFilterOptions, defaultSimulationFilterOptions],
         [cityOptions, defaultCityOptions],
     ].forEach((pair: any) => {
         const [currentOpts, defaultOpts] = pair;
@@ -125,7 +142,7 @@ function restoreFromUrl() {
     });
 
     if (query.city) {
-        cityOptions.city = (dataUrlByCity as any)[query.city];
+        cityOptions.city = (citySettings as any)[query.city];
     }
 
     start();
@@ -140,14 +157,23 @@ const simulationUpdate = throttle(() => {
     start();
 }, 500);
 
-// const formFolder = gui.addFolder('Form');
-gui.add(simulationOptions, 'randomSeed').onChange(simulationUpdate);
-gui.add(simulationOptions, 'diseaseRange', 1, 500, 1).onChange(simulationUpdate);
-gui.add(simulationOptions, 'immunityAfter', 1, 240, 1).onChange(simulationUpdate);
-gui.add(simulationOptions, 'waitAtHome', 0, 100, 0.1).onChange(simulationUpdate);
-gui.add(simulationOptions, 'timeOutside', 0, 100, 0.1).onChange(simulationUpdate);
-gui.add(simulationOptions, 'humansCount', 0, 25000, 1).onChange(simulationUpdate);
-gui.add(simulationOptions, 'diseaseStartCount', 0, 5000, 1).onChange(simulationUpdate);
-gui.add(simulationOptions, 'humansStop', 0, 1, 0.01).onChange(simulationUpdate);
-gui.add(simulationOptions, 'humanSpeed', 0, 500, 1).onChange(simulationUpdate);
+const simFolder = gui.addFolder('Simulation');
+simFolder.open();
+simFolder.add(simulationOptions, 'randomSeed').onChange(simulationUpdate);
+simFolder.add(simulationOptions, 'diseaseRange', 1, 500, 1).onChange(simulationUpdate);
+simFolder.add(simulationOptions, 'immunityAfter', 1, 240, 1).onChange(simulationUpdate);
+simFolder.add(simulationOptions, 'waitAtHome', 0, 100, 0.1).onChange(simulationUpdate);
+simFolder.add(simulationOptions, 'timeOutside', 0, 100, 0.1).onChange(simulationUpdate);
+simFolder.add(simulationOptions, 'humansCount', 0, 25000, 1).onChange(simulationUpdate);
+simFolder.add(simulationOptions, 'diseaseStartCount', 0, 5000, 1).onChange(simulationUpdate);
+simFolder.add(simulationOptions, 'humansStop', 0, 1, 0.01).onChange(simulationUpdate);
+simFolder.add(simulationOptions, 'humanSpeed', 0, 500, 1).onChange(simulationUpdate);
+
+const dataFolder = gui.addFolder('Data');
+dataFolder.add(cityOptions, 'city', Object.keys(citySettings)).onChange(simulationUpdate);
+dataFolder.add(simulationFilterOptions, 'radius').onChange(simulationUpdate);
+
+const debugFolder = gui.addFolder('Debug');
+debugFolder.add({ drawGraph: () => drawGraph(map, simulation) }, 'drawGraph');
+debugFolder.add({ clearGraph }, 'clearGraph');
 // gui.add(config, 'dataRange', 1, 50000, 1).onChange(update);

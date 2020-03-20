@@ -1,9 +1,8 @@
-import { Map as JMap } from '@2gis/jakarta';
-import KDBush from 'kdbush';
 import * as vec2 from '@2gis/gl-matrix/vec2';
+import KDBush from 'kdbush';
 
 import { EasyRender } from './easyRender';
-import { Graph, GraphVertex } from '../data/graph';
+import { Graph, GraphVertex } from '../data/types';
 import { projectGeoToMap, createRandomFunction, clamp } from './utils';
 import { Human, SimulationOptions, SimulationFilterOptions, SimulationStat } from './types';
 
@@ -26,13 +25,17 @@ export class Simulation {
     private humans: Human[];
     private startTime: number;
     private stats: SimulationStat[];
+    private lastUpdate: number;
+    private simulationTime: number;
 
-    constructor(map: JMap) {
-        this.render = new EasyRender(map);
+    constructor(map: import('@2gis/jakarta').Map, Marker: typeof import('@2gis/jakarta').Marker) {
+        this.render = new EasyRender(map, Marker);
         this.random = createRandomFunction(this.options.randomSeed);
         this.humans = [];
         this.startTime = 0;
         this.stats = [];
+        this.lastUpdate = Date.now();
+        this.simulationTime = 0;
         requestAnimationFrame(this.update);
     }
 
@@ -83,6 +86,7 @@ export class Simulation {
         this.startTime = Date.now();
         this.stats = [];
         this.graph = undefined;
+        this.simulationTime = 0;
     }
 
     public getStats() {
@@ -99,14 +103,25 @@ export class Simulation {
         }
 
         const now = Date.now();
-        this.humans.forEach((human) => updateHuman(graph, this.random, this.options, human, now));
-        this.spreadDisease(now);
-        this.collectStat(now);
+        let delta = Date.now() - this.lastUpdate;
+        if (delta > 1000) {
+            delta = 16;
+        }
+
+        this.simulationTime += delta;
+
+        this.humans.forEach((human) =>
+            updateHuman(graph, this.random, this.options, human, this.simulationTime),
+        );
+        this.spreadDisease();
+        this.collectStat();
 
         this.render.render();
+
+        this.lastUpdate = now;
     };
 
-    private spreadDisease(now: number) {
+    private spreadDisease() {
         const humans = this.humans;
         const kd = new KDBush(
             humans.filter((h) => h.state === 'disease'),
@@ -127,14 +142,14 @@ export class Simulation {
 
             if (nearestHumans.length) {
                 h.state = 'disease';
-                h.diseaseStart = now;
+                h.diseaseStart = this.simulationTime;
             }
         });
     }
 
-    private collectStat(now: number) {
+    private collectStat() {
         const stat: SimulationStat = {
-            time: now - this.startTime,
+            time: this.simulationTime - this.startTime,
             virgin: 0,
             disease: 0,
             immune: 0,
@@ -175,21 +190,19 @@ function createHuman(
 
     const forward = edge.a === vertexFrom.id;
 
-    const now = Date.now();
-
-    let homeTimeStart = now - options.waitAtHome * 1000 - random() * options.timeOutside * 1000;
+    let homeTimeStart = -options.waitAtHome * 1000 - random() * options.timeOutside * 1000;
 
     if (vertexFrom.type === 'house') {
-        homeTimeStart = now - random() * options.waitAtHome * 1000;
+        homeTimeStart = -random() * options.waitAtHome * 1000;
     }
 
     const human: Human = {
         coords: vertexFrom.coords.slice(0),
         forward,
         edge: edgeIndex,
-        startTime: now,
+        startTime: 0,
         state: disease ? 'disease' : 'virgin',
-        diseaseStart: now,
+        diseaseStart: 0,
         stoped,
         homeTimeStart,
     };

@@ -1,21 +1,23 @@
 {
-    "name": "typescript-boilerplate",
-    "version": "0.0.2",
-    "description": "Typescript boilerplate for new projects",
-    "main": "dist/index.js",
+    "name": "@webmaps/covid-simulation",
+    "version": "0.0.1",
+    "description": "Covid Simulation",
+    "main": "dist/simulation.js",
+    "typings": "dist/es6/src/index.d.ts",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Trufi/typescript-boilerplate.git"
+        "url": "git+https://gitlab.2gis.ru/WebMaps/covid-simulation.git"
     },
     "author": {
         "name": "Mstislav Zhivodkov",
         "email": "stevemyz@gmail.com",
         "url": "https://trufi.github.io/"
     },
-    "license": "MIT",
     "scripts": {
         "start": "npm run dev",
-        "build": "webpack --production",
+        "build": "npm run build:bundle && npm run build:typings",
+        "build:bundle": "webpack --production",
+        "build:typings": "tsc -p tsconfig.es6.json --declaration --emitDeclarationOnly",
         "dev": "webpack-dev-server",
         "data": "node data/hook.js",
         "lint": "tslint 'src/**/*.ts'",
@@ -23,22 +25,22 @@
         "test": "npm run lint && npm run prettier && npm run build"
     },
     "dependencies": {
+        "@2gis/jakarta": "https://gitlab.2gis.ru/WebMaps/jakarta/builds/artifacts/v12.4.0/raw/build.tar.gz?job=release",
         "2gl": "^0.8.0",
         "@2gis/gl-matrix": "^2.4.6",
-        "@types/dat.gui": "^0.7.5",
         "@types/kdbush": "^3.0.0",
         "dat.gui": "^0.7.6",
         "kdbush": "^3.0.0",
-        "ts-node": "^8.6.2",
         "tslib": "^1.10.0"
     },
     "devDependencies": {
-        "@2gis/jakarta": "https://gitlab.2gis.ru/WebMaps/jakarta/builds/artifacts/v12.4.0/raw/build.tar.gz?job=release",
+        "@types/dat.gui": "^0.7.5",
         "@types/fs-extra": "^8.1.0",
         "fork-ts-checker-webpack-plugin": "^4.0.2",
         "fs-extra": "^8.1.0",
         "prettier": "^1.19.1",
         "ts-loader": "^6.2.1",
+        "ts-node": "^8.6.2",
         "tslint": "^6.0.0",
         "tslint-eslint-rules": "^5.4.0",
         "typescript": "^3.7.5",

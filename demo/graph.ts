@@ -1,15 +1,17 @@
 import { MapClass, Polyline, Marker } from '@2gis/jakarta';
 import * as vec2 from '@2gis/gl-matrix/vec2';
-import { Graph } from '../data/graph';
 import { projectGeoToMap, projectMapToGeo } from '../src/utils';
 import { getCircleIcon } from './utils';
+import { Simulation } from '../src';
+import { Graph } from '../data/types';
 
 const edges: Polyline[] = [];
 const vertices: Marker[] = [];
 
-export function drawGraph(map: MapClass, graph: Graph) {
+export function drawGraph(map: MapClass, simulation: Simulation) {
     clearGraph();
 
+    const graph: Graph = (simulation as any).graph;
     const center = projectGeoToMap(map.getCenter());
 
     const nearRadius = 300000;
@@ -17,7 +19,7 @@ export function drawGraph(map: MapClass, graph: Graph) {
     graph.vertices
         .filter((e) => vec2.dist(e.coords, center) < nearRadius)
         .forEach((e) => {
-            const marker = new mapgl.Marker(map, {
+            const marker = new Marker(map, {
                 coordinates: projectMapToGeo(e.coords),
                 icon: getCircleIcon('#ff000077', 5),
             });

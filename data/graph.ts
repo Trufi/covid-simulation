@@ -5,6 +5,7 @@ import KDBush = require('kdbush');
 
 import { projectGeoToMap } from '../src/utils';
 import { Building } from './buildings';
+import { Graph, GraphVertex, GraphEdge } from './types';
 
 interface Edge {
     id: string;
@@ -12,26 +13,6 @@ interface Edge {
     in: string[];
     out: string[];
     vertices: number[][];
-}
-
-export interface GraphEdge {
-    // id: string;
-    geometry: number[][];
-    a: number;
-    b: number;
-    type: 'road' | 'house';
-}
-
-export interface GraphVertex {
-    id: number;
-    edges: number[];
-    coords: number[];
-    type: 'road' | 'house';
-}
-
-export interface Graph {
-    vertices: GraphVertex[];
-    edges: GraphEdge[]; // Просто список всех
 }
 
 const nearRadius = 100;

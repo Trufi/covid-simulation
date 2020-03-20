@@ -1,9 +1,8 @@
-import { Map as JMap, Marker } from '@2gis/jakarta';
 import { Human } from './types';
 import { projectMapToGeo } from './utils';
 
 interface RenderPoint {
-    marker: Marker;
+    marker: import('@2gis/jakarta').Marker;
     state: Human['state'];
     human: Human;
 }
@@ -30,7 +29,10 @@ function getCircleIcon(color: string, radius: number): string {
 export class EasyRender {
     private points: RenderPoint[];
 
-    constructor(private map: JMap) {
+    constructor(
+        private map: import('@2gis/jakarta').Map,
+        private Marker: typeof import('@2gis/jakarta').Marker,
+    ) {
         this.points = [];
     }
 
@@ -65,7 +67,7 @@ export class EasyRender {
     }
 
     private createMarker(human: Human) {
-        return new Marker(this.map, {
+        return new this.Marker(this.map, {
             coordinates: projectMapToGeo(human.coords),
             icon: icons[human.state],
         });
