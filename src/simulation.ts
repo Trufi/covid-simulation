@@ -5,6 +5,7 @@ import { EasyRender } from './easyRender';
 import { Graph, GraphVertex } from '../data/types';
 import { projectGeoToMap, createRandomFunction, clamp } from './utils';
 import { Human, SimulationOptions, SimulationFilterOptions, SimulationStat } from './types';
+import { unpackGraph } from '../data/pack';
 
 export class Simulation {
     private options: SimulationOptions = {
@@ -154,20 +155,6 @@ export class Simulation {
         this.humans.forEach((h) => stat[h.state]++);
         this.stats.push(stat);
     }
-}
-
-function unpackGraph(graph: Graph) {
-    const roundFactor = 100;
-    graph.vertices.forEach((v) => {
-        v.coords[0] = v.coords[0] * roundFactor;
-        v.coords[1] = v.coords[1] * roundFactor;
-    });
-    graph.edges.forEach((e) =>
-        e.geometry.forEach((v) => {
-            v[0] = v[0] * roundFactor;
-            v[1] = v[1] * roundFactor;
-        }),
-    );
 }
 
 function createHuman(

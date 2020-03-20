@@ -17,4 +17,4 @@ build:
             - dist
             - assets
             - index.html
-        expire_in: 30 days
+        expire_in: 5 days

@@ -189,6 +189,13 @@ const simulationUpdate = throttle(() => {
     start();
 }, 500);
 
+const debugFolder = gui.addFolder('Debug');
+debugFolder.add({ drawGraph: () => drawGraph(map, simulation) }, 'drawGraph');
+debugFolder.add({ clearGraph }, 'clearGraph');
+
+const dataFolder = gui.addFolder('Data');
+dataFolder.add(simulationFilterOptions, 'radius').onChange(simulationUpdate);
+
 const simFolder = gui.addFolder('Simulation');
 simFolder.open();
 simFolder.add(simulationOptions, 'randomSeed').onChange(simulationUpdate);
@@ -201,13 +208,33 @@ simFolder.add(simulationOptions, 'diseaseStartCount', 0, 5000, 1).onChange(simul
 simFolder.add(simulationOptions, 'humansStop', 0, 1, 0.01).onChange(simulationUpdate);
 simFolder.add(simulationOptions, 'humanSpeed', 0, 500, 1).onChange(simulationUpdate);
 
-const dataFolder = gui.addFolder('Data');
-dataFolder.add(cityOptions, 'city', Object.keys(citySettings)).onChange(() => {
+gui.add(cityOptions, 'city', Object.keys(citySettings)).onChange(() => {
     map.setCenter(citySettings[cityOptions.city].center);
     simulationUpdate();
 });
-dataFolder.add(simulationFilterOptions, 'radius').onChange(simulationUpdate);
 
-const debugFolder = gui.addFolder('Debug');
-debugFolder.add({ drawGraph: () => drawGraph(map, simulation) }, 'drawGraph');
-debugFolder.add({ clearGraph }, 'clearGraph');
+const exportWrapper = document.getElementById('export') as HTMLDivElement;
+const exportCloseButton = document.getElementById('export-close') as HTMLButtonElement;
+const exportCopy = document.getElementById('export-copy') as HTMLDivElement;
+const exportText = document.getElementById('export-text') as HTMLTextAreaElement;
+
+function showHideExport() {
+    exportWrapper.style.display = exportWrapper.style.display === 'flex' ? 'none' : 'flex';
+    exportText.value = JSON.stringify(
+        {
+            ...simulationOptions,
+            dataUrl: `./assets/${cityOptions.city}.json`,
+        },
+        null,
+        2,
+    );
+}
+exportCopy.onclick = () => {
+    exportText.select();
+    exportText.setSelectionRange(0, 99999); /*For mobile devices*/
+
+    /* Copy the text inside the text field */
+    document.execCommand('copy');
+};
+exportCloseButton.onclick = showHideExport;
+gui.add({ export: showHideExport }, 'export');

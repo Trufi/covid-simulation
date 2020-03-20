@@ -3,14 +3,30 @@ import * as path from 'path';
 import { createGraph } from './graph';
 import { getBuildings } from './buildings';
 import { getMacroEdges } from './macro';
-import { Graph } from './types';
+import { packGraph } from './pack';
 
 interface CityConfig {
     center: number[];
     range: number;
 }
 
+function prettyMs(ms: number) {
+    const minutes = Math.floor(ms / 1000 / 60);
+    const seconds = Math.floor(ms / 1000 - minutes * 60);
+    let s = '';
+    if (minutes > 0) {
+        s += `${minutes} min `;
+    }
+    if (seconds > 0) {
+        s += `${seconds} sec`;
+    }
+    return s;
+}
+
 function convertCity(city: string) {
+    const startTime = Date.now();
+    console.log(`Start convert ${city} data`);
+
     const cityDir = path.join(__dirname, 'cities', city);
 
     const config: CityConfig = fs.readJSONSync(path.join(cityDir, 'config.json'));
@@ -29,24 +45,15 @@ function convertCity(city: string) {
     fs.mkdirpSync(outDir);
     fs.writeJsonSync(path.join(outDir, `${city}.json`), graph);
 
-    console.log(`Successfully convert ${city} data`);
+    console.log(`Successfully convert ${city} data in ${prettyMs(Date.now() - startTime)}\n`);
 }
 
-// const cities = fs.readdirSync(path.join(__dirname, 'cities'));
-// cities.forEach(convertCity);
-convertCity('dubai');
-
-function packGraph(graph: Graph) {
-    const roundFactor = 100;
-    graph.vertices.forEach((v) => {
-        v.coords = [Math.round(v.coords[0] / roundFactor), Math.round(v.coords[1] / roundFactor)];
-        // (v as any).id = undefined;
-    });
-    graph.edges.forEach(
-        (e) =>
-            (e.geometry = e.geometry.map((v) => [
-                Math.round(v[0] / roundFactor),
-                Math.round(v[1] / roundFactor),
-            ])),
-    );
-}
+const cities = fs.readdirSync(path.join(__dirname, 'cities'));
+cities.forEach((city) => {
+    if (city === 'dubai') {
+        return;
+    }
+    convertCity(city);
+});
+// convertCity('dubai');
+// convertCity('spb');

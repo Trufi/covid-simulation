@@ -26,12 +26,47 @@
                 left: 5px;
                 pointer-events: none;
             }
+            #export {
+                display: none;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                justify-content: center;
+                align-items: center;
+            }
+            #export button {
+                cursor: pointer;
+            }
+            #export-inner {
+                padding: 5px;
+                border-radius: 3px;
+                background: #ffffffaa;
+            }
+            #export-text {
+                width: 230px;
+                height: 210px;
+                resize: none;
+                background: #ffffffaa;
+            }
         </style>
     </head>
     <body>
         <div id="map"></div>
         <canvas id="canvas"></canvas>
         <canvas id="stats"></canvas>
+        <div id="export">
+            <div id="export-inner">
+                <div>
+                    <textarea id="export-text" readonly></textarea>
+                </div>
+                <div>
+                    <button id="export-close">Close</button>
+                    <button id="export-copy">Copy</button>
+                </div>
+            </div>
+        </div>
         <script src="./dist/demo.js"></script>
     </body>
 </html>

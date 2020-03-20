@@ -82,6 +82,7 @@ export interface CreateGraphOptions {
 }
 
 export function createGraph(edges: Edge[], buildings: Building[], options: CreateGraphOptions) {
+    idCounter = 0;
     const mapCenter = projectGeoToMap(options.center);
     const range = options.range * 100;
 
