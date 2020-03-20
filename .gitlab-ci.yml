@@ -8,7 +8,6 @@ build:
         - node -v
         - npm -v
         - npm ci
-        - npm run data
         - npm run build
     tags:
         - 2gis
@@ -16,5 +15,6 @@ build:
     artifacts:
         paths:
             - dist
+            - assets
             - index.html
         expire_in: 30 days

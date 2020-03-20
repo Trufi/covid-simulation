@@ -1,8 +1,5 @@
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const path = require('path');
-const fs = require('fs-extra');
-
-copyAssets();
 
 module.exports = (_, args) => {
     const mode = args.production ? 'production' : 'development';
@@ -49,7 +46,6 @@ module.exports = (_, args) => {
         devtool: mode === 'production' ? false : 'source-map',
 
         devServer: {
-            contentBase: path.resolve(__dirname, 'dist'),
             host: '0.0.0.0',
             port: 3000,
             stats: {
@@ -61,11 +57,3 @@ module.exports = (_, args) => {
 
     return library;
 };
-
-function copyAssets() {
-    const root = __dirname;
-    const dist = path.join(root, 'dist');
-
-    fs.copySync(path.join(root, 'assets'), path.join(dist, 'assets'));
-    fs.copySync(path.join(root, 'demo', 'index.html'), path.join(dist, 'index.html'));
-}

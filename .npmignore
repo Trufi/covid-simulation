@@ -13,6 +13,7 @@ dist/assets/
 .gitignore
 .gitlab-ci.yml
 .npmignore
+.npmrc
 .prettierignore
 prettier.config.js
 tsconfig.es6.json
