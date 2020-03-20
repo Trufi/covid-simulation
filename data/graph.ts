@@ -115,9 +115,6 @@ export function createGraph(edges: Edge[], buildings: Building[], options: Creat
         }
 
         const edgeIndex = graph.edges.length;
-        if (edgeIndex === 2572) {
-            console.log('aaa');
-        }
         const graphEdge: GraphEdge = {
             // id: edge.id,
             geometry: edge.vertices,
@@ -141,12 +138,12 @@ export function createGraph(edges: Edge[], buildings: Building[], options: Creat
         }
     });
 
-    addBuildings(graph, buildings);
+    addBuildings(graph, buildings, mapCenter, range);
 
     return graph;
 }
 
-function addBuildings(graph: Graph, buildings: Building[]) {
+function addBuildings(graph: Graph, buildings: Building[], mapCenter: number[], range: number) {
     let kd = new KDBush(
         graph.vertices,
         (h) => h.coords[0],
@@ -157,6 +154,10 @@ function addBuildings(graph: Graph, buildings: Building[]) {
     const vertexRadius = 500000;
 
     buildings.forEach((building) => {
+        if (vec2.dist(building.point, mapCenter) > range) {
+            return;
+        }
+
         const verticesInRange = kd
             .within(building.point[0], building.point[1], vertexRadius)
             .map((index) => graph.vertices[index]);
@@ -265,9 +266,6 @@ function createNewEdge(graph: Graph, startVertexIndex: number, newPoint: number[
         type: 'house',
     };
     const edgeIndex = graph.edges.length;
-    if (edgeIndex === 9140) {
-        console.log('zzz');
-    }
     graph.edges.push(edge);
     startVertex.edges.push(edgeIndex);
     newVertex.edges.push(edgeIndex);

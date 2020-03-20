@@ -1,7 +1,7 @@
 import { MapClass, Marker } from '@2gis/jakarta';
 import * as dat from 'dat.gui';
 
-import { SimulationOptions, SimulationFilterOptions } from '../src/types';
+import { SimulationOptions } from '../src/types';
 import { Simulation } from '../src';
 import { drawStats } from './stats';
 import { coordinatesPrecision, throttle, parseQuery } from './utils';
@@ -32,21 +32,46 @@ const defaultSimulationOptions: Omit<SimulationOptions, 'dataUrl'> = {
 const simulationOptions = { ...defaultSimulationOptions };
 
 const citySettings = {
-    nsk: {
-        dataUrl: './assets/nsk.json',
+    novosibirsk: {
         center: [82.93024970970109, 55.01605852277987],
+    },
+    moscow: {
+        center: [37.62237, 55.753491],
+    },
+    spb: {
+        center: [30.30443, 59.943826],
+    },
+    kazan: {
+        center: [49.141467, 55.779121],
+    },
+    chelyabinsk: {
+        center: [61.400285, 55.163678],
+    },
+    ekaterinburg: {
+        center: [60.602911, 56.845605],
+    },
+    omsk: {
+        center: [73.362552, 54.971369],
+    },
+    krasnoyarsk: {
+        center: [92.892688, 56.017456],
+    },
+    vladivostok: {
+        center: [131.929993, 43.120879],
+    },
+    dubai: {
+        center: [55.25674, 25.146185],
     },
 };
 
-const defaultSimulationFilterOptions: SimulationFilterOptions = {
-    center: [82.93024970970109, 55.01605852277987],
+const defaultSimulationFilterOptions = {
     radius: 25000,
 };
 
 const simulationFilterOptions = { ...defaultSimulationFilterOptions };
 
 const defaultCityOptions = {
-    city: 'nsk' as keyof typeof citySettings,
+    city: 'novosibirsk' as keyof typeof citySettings,
 };
 
 const cityOptions = {
@@ -68,9 +93,12 @@ function start() {
     simulation.start(
         {
             ...simulationOptions,
-            dataUrl: citySettings[cityOptions.city].dataUrl,
+            dataUrl: `./assets/${cityOptions.city}.json`,
         },
-        simulationFilterOptions,
+        {
+            ...simulationFilterOptions,
+            center: citySettings[cityOptions.city].center,
+        },
     );
 }
 
@@ -97,15 +125,19 @@ const updateUrl = throttle(() => {
     const params: string[][] = [];
 
     [
+        [cityOptions, defaultCityOptions],
         [mapOptions, defaultMapOptions],
         [simulationOptions, defaultSimulationOptions],
         [simulationFilterOptions, defaultSimulationFilterOptions],
-        [cityOptions, defaultCityOptions],
     ].forEach((pair: any) => {
         const [currentOpts, defaultOpts] = pair;
         for (const key in currentOpts) {
             if (currentOpts[key] !== defaultOpts[key]) {
-                params.push([key, round(currentOpts[key])]);
+                if (typeof currentOpts[key] === 'number') {
+                    params.push([key, round(currentOpts[key])]);
+                } else if (typeof currentOpts[key] === 'string') {
+                    params.push([key, currentOpts[key]]);
+                }
             }
         }
     });
@@ -142,7 +174,7 @@ function restoreFromUrl() {
     });
 
     if (query.city) {
-        cityOptions.city = (citySettings as any)[query.city];
+        cityOptions.city = query.city as any;
     }
 
     start();
@@ -170,10 +202,12 @@ simFolder.add(simulationOptions, 'humansStop', 0, 1, 0.01).onChange(simulationUp
 simFolder.add(simulationOptions, 'humanSpeed', 0, 500, 1).onChange(simulationUpdate);
 
 const dataFolder = gui.addFolder('Data');
-dataFolder.add(cityOptions, 'city', Object.keys(citySettings)).onChange(simulationUpdate);
+dataFolder.add(cityOptions, 'city', Object.keys(citySettings)).onChange(() => {
+    map.setCenter(citySettings[cityOptions.city].center);
+    simulationUpdate();
+});
 dataFolder.add(simulationFilterOptions, 'radius').onChange(simulationUpdate);
 
 const debugFolder = gui.addFolder('Debug');
 debugFolder.add({ drawGraph: () => drawGraph(map, simulation) }, 'drawGraph');
 debugFolder.add({ clearGraph }, 'clearGraph');
-// gui.add(config, 'dataRange', 1, 50000, 1).onChange(update);

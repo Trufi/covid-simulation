@@ -2,15 +2,18 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import { projectGeoToMap } from '../src/utils';
 
-const regExp = /жилой дом/i;
+/**
+ * Селект для выборки домов в dgdat:
+ * select substr(substr(json_extract(json, '$.geometry.centroid'), -1, -30), 7) from gui_full where type = 'building' and json_extract(json, '$.purpose_name') like '%илой дом%'
+ */
 
 export interface Building {
     point: number[];
-    purpose: string;
+    // purpose: string;
 }
 
-export function getBuildings() {
-    const csv = fs.readFileSync(path.join(__dirname, 'buildings.csv'), 'utf8');
+export function getBuildings(dir: string) {
+    const csv = fs.readFileSync(path.join(dir, 'buildings.csv'), 'utf8');
     const rows = csv.split('\n');
 
     return rows
@@ -19,22 +22,21 @@ export function getBuildings() {
                 return;
             }
             try {
-                const array = JSON.parse(row);
                 const obj: Building = {
-                    point: wktPointToMap(array[0]),
-                    purpose: array[1],
+                    point: stringToMap(row),
+                    // purpose: array[1],
                 };
                 return obj;
             } catch (e) {
                 console.log('json parse error', e, row);
             }
         })
-        .filter((b) => b !== undefined && b.purpose.search(regExp) !== -1) as Building[];
+        .filter((b) => b !== undefined) as Building[];
 }
 
-function wktPointToMap(s: string) {
+function stringToMap(s: string) {
     const geoPoint = s
-        .slice('POINT('.length, -1)
+        .trim()
         .split(' ')
         .map(Number);
     return projectGeoToMap(geoPoint).map(Math.round);
