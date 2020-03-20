@@ -20,3 +20,4 @@ tsconfig.es6.json
 tsconfig.json
 tslint.json
 webpack.config.js
+index.html

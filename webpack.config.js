@@ -35,6 +35,7 @@ module.exports = (_, args) => {
             filename: '[name].js',
             path: path.resolve(__dirname, 'dist'),
             publicPath: '/dist',
+            libraryTarget: 'commonjs2',
         },
 
         plugins: [
