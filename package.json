@@ -22,7 +22,8 @@
         "data": "node data/hook.js",
         "lint": "tslint 'src/**/*.ts'",
         "prettier": "prettier --check \"./**/*.{ts,tsx,js,json,html,css}\"",
-        "test": "npm run lint && npm run prettier && npm run build"
+        "test": "npm run lint && npm run prettier && npm run build",
+        "prepublishOnly": "rm -rf dist && npm run build"
     },
     "dependencies": {
         "@2gis/jakarta": "https://gitlab.2gis.ru/WebMaps/jakarta/builds/artifacts/v12.4.0/raw/build.tar.gz?job=release",
