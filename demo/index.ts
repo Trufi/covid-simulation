@@ -8,8 +8,6 @@ import { coordinatesPrecision, throttle, parseQuery } from './utils';
 import { drawGraph, clearGraph } from './graph';
 
 const defaultMapOptions = {
-    lng: 82.93024970970109,
-    lat: 55.01605852277987,
     zoom: 12,
     rotation: 0,
     pitch: 0,
@@ -79,7 +77,7 @@ const cityOptions = {
 };
 
 const map = new MapClass(document.getElementById('map') as HTMLDivElement, {
-    center: [mapOptions.lng, mapOptions.lat],
+    center: [82.93, 55.01],
     zoom: mapOptions.zoom,
     rotation: mapOptions.rotation,
     pitch: mapOptions.pitch,
@@ -115,14 +113,14 @@ const updateUrl = throttle(() => {
     const zoom = map.getZoom();
     const precision = coordinatesPrecision(zoom);
     const mapOptions: typeof defaultMapOptions = {
-        lng: Number(center[0].toFixed(precision)),
-        lat: Number(center[1].toFixed(precision)),
         zoom,
         rotation: map.getRotation(),
         pitch: map.getPitch(),
     };
 
     const params: string[][] = [];
+
+    params.push(['lng', center[0].toFixed(precision)], ['lat', center[1].toFixed(precision)]);
 
     [
         [cityOptions, defaultCityOptions],
