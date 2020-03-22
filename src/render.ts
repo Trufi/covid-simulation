@@ -27,7 +27,7 @@ export class Render {
         this.canvas.style.top = '0';
         this.canvas.style.pointerEvents = 'none';
 
-        const mapCanvas = map.modules.container.querySelector('canvas');
+        const mapCanvas = map.modules.layout.mapContainer.querySelector('canvas');
         const mapCanvasNextSibling = mapCanvas?.nextSibling;
         if (!mapCanvas) {
             throw new Error('Map canvas not found');
@@ -36,7 +36,7 @@ export class Render {
             throw new Error('Map html markers container not found');
         }
 
-        map.modules.container.insertBefore(this.canvas, mapCanvasNextSibling);
+        map.modules.layout.mapContainer.insertBefore(this.canvas, mapCanvasNextSibling);
 
         this.points = [];
 
