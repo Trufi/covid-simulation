@@ -28,6 +28,7 @@ export function packGraph(graph: Graph) {
         deltaEncodeVec2(v.coords);
         (v as any).type = packType(v.type);
         v.edges = v.edges.map(deltaEncode);
+        (v as any).id = undefined;
     });
 
     graph.edges.forEach((e) => {

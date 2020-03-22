@@ -1,2 +1,8 @@
 export { Simulation } from './simulation';
-export { SimulationOptions, SimulationStat, SimulationFilterOptions } from './types';
+export {
+    SimulationOptions,
+    SimulationIcons,
+    SimulationStartOptions,
+    SimulationStat,
+    SimulationFilterOptions,
+} from './types';

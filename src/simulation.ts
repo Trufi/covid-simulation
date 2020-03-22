@@ -1,16 +1,24 @@
 import * as vec2 from '@2gis/gl-matrix/vec2';
 import KDBush from 'kdbush';
 
-import { EasyRender } from './easyRender';
-import { Graph, GraphVertex } from '../data/types';
+import { Render } from './Render';
+import { Graph } from '../data/types';
 import { projectGeoToMap, createRandomFunction, clamp } from './utils';
-import { Human, SimulationOptions, SimulationFilterOptions, SimulationStat } from './types';
+import {
+    Human,
+    SimulationStartOptions,
+    SimulationFilterOptions,
+    SimulationStat,
+    ClientGraph,
+    ClientGraphVertex,
+    SimulationOptions,
+} from './types';
 import { unpackGraph } from '../data/pack';
 
 export class Simulation {
-    private options: SimulationOptions = {
+    private options: SimulationStartOptions = {
         randomSeed: 15,
-        diseaseRange: 30,
+        diseaseRange: 1,
         immunityAfter: 15,
         waitAtHome: 2,
         timeOutside: 5,
@@ -19,74 +27,91 @@ export class Simulation {
         diseaseStartCount: 50,
         humanSpeed: 100,
         dataUrl: '',
+        humanDeviation: 0.5,
     };
-    private render: EasyRender;
-    private graph?: Graph;
+    private render: Render;
+    private graph?: ClientGraph;
     private random: () => number;
     private humans: Human[];
     private stats: SimulationStat[];
     private lastUpdate: number;
     private simulationTime: number;
+    private lastSpreadTime: number;
 
-    constructor(map: import('@2gis/jakarta').Map, Marker: typeof import('@2gis/jakarta').Marker) {
-        this.render = new EasyRender(map, Marker);
+    constructor(map: import('@2gis/jakarta').Map, options: SimulationOptions) {
+        this.render = new Render(map, options.icons);
         this.random = createRandomFunction(this.options.randomSeed);
         this.humans = [];
         this.stats = [];
         this.lastUpdate = Date.now();
         this.simulationTime = 0;
+        this.lastSpreadTime = 0;
         requestAnimationFrame(this.update);
     }
 
-    public start(options: SimulationOptions, filterOptions?: SimulationFilterOptions) {
+    public start(options: SimulationStartOptions, filterOptions?: SimulationFilterOptions) {
         this.options = options;
         this.stop();
 
         fetch(options.dataUrl)
             .then((r) => r.json())
             .then((graph: Graph) => {
-                unpackGraph(graph);
-                this.graph = graph;
+                this.graph = prepareGraph(graph);
 
-                let verticesInRange: GraphVertex[];
+                const vertexInRangeIndices: number[] = [];
                 if (filterOptions) {
                     const mapCenter = projectGeoToMap(filterOptions.center);
-                    verticesInRange = graph.vertices.filter(
-                        (vertex) =>
+                    this.graph.vertices.forEach((vertex, i) => {
+                        if (
                             vertex.type !== 'null' &&
-                            vec2.dist(vertex.coords, mapCenter) < filterOptions.radius * 100,
-                    );
+                            vec2.dist(vertex.coords, mapCenter) < filterOptions.radius * 100
+                        ) {
+                            vertexInRangeIndices.push(i);
+                        }
+                    });
                 } else {
-                    verticesInRange = graph.vertices.filter((v) => v.type !== 'null');
+                    this.graph.vertices.forEach((vertex, i) => {
+                        if (vertex.type !== 'null') {
+                            vertexInRangeIndices.push(i);
+                        }
+                    });
                 }
 
-                if (!verticesInRange.length) {
+                if (!vertexInRangeIndices.length) {
                     return;
                 }
 
+                const houseVertexIndices = vertexInRangeIndices.filter(
+                    (index) => graph.vertices[index].type === 'house',
+                );
+
                 for (let i = 0; i < options.humansCount; i++) {
+                    const stoped = i < options.humansCount * options.humansStop;
                     const human = createHuman(
                         this.graph,
                         this.random,
-                        verticesInRange,
+                        stoped && houseVertexIndices.length
+                            ? houseVertexIndices
+                            : vertexInRangeIndices,
                         options,
                         i < options.diseaseStartCount,
-                        i < options.humansCount * options.humansStop,
+                        stoped,
                     );
                     this.humans.push(human);
                 }
 
-                this.render.setPoints(this.humans);
+                this.render.setPoints(this.humans, graph.min, graph.max);
             });
     }
 
     public stop() {
-        this.render.setPoints([]);
+        this.render.setPoints([], [0, 0], [0, 0]);
         this.random = createRandomFunction(this.options.randomSeed);
         this.humans = [];
         this.stats = [];
         this.graph = undefined;
         this.simulationTime = 0;
+        this.lastSpreadTime = 0;
     }
 
     public getStats() {
@@ -113,7 +138,13 @@ export class Simulation {
         this.humans.forEach((human) =>
             updateHuman(graph, this.random, this.options, human, this.simulationTime),
         );
-        this.spreadDisease();
+
+        const spreadUpdateInterval = Math.max(delta, 100);
+        if (this.simulationTime - this.lastSpreadTime > spreadUpdateInterval) {
+            this.spreadDisease(this.simulationTime, spreadUpdateInterval);
+            this.lastSpreadTime = this.simulationTime;
+        }
+
         this.collectStat();
 
         this.render.render();
@@ -121,7 +152,9 @@ export class Simulation {
         this.lastUpdate = now;
     };
 
-    private spreadDisease() {
+    private spreadDisease(now: number, dt: number) {
+        const distance = this.options.humanSpeed * dt * 2;
+
         const humans = this.humans;
         const kd = new KDBush(
             humans.filter((h) => h.state === 'disease'),
@@ -136,11 +169,16 @@ export class Simulation {
                 return;
             }
 
-            const nearestHumans = kd
-                .within(h.coords[0], h.coords[1], this.options.diseaseRange * 100)
-                .map((index) => humans[index]);
+            let radius = this.options.diseaseRange * 100 + distance;
 
-            if (nearestHumans.length) {
+            // Если чел дома, то радиус не учитывает возможное пройденное расстояние
+            if (humanAtHome(h, now)) {
+                radius = this.options.diseaseRange * 100;
+            }
+
+            const nearestHumanIndices = kd.within(h.coords[0], h.coords[1], radius);
+
+            if (nearestHumanIndices.length) {
                 h.state = 'disease';
                 h.diseaseStart = this.simulationTime;
             }
@@ -160,26 +198,30 @@ export class Simulation {
 }
 
 function createHuman(
-    graph: Graph,
+    graph: ClientGraph,
     random: () => number,
-    vertices: GraphVertex[],
-    options: SimulationOptions,
+    vertexIndices: number[],
+    options: SimulationStartOptions,
     disease: boolean,
     stoped: boolean,
 ) {
-    const id = Math.floor(random() * vertices.length);
-    const vertexFrom = vertices[id];
+    const vertexFromIndex = vertexIndices[Math.floor(random() * vertexIndices.length)];
+    const vertexFrom = graph.vertices[vertexFromIndex];
 
-    const vertexEdgeIndex = Math.floor(random() * vertexFrom.edges.length);
-    const edgeIndex = vertexFrom.edges[vertexEdgeIndex];
+    const edgeIndex = vertexFrom.edges.length
+        ? vertexFrom.edges[Math.floor(random() * vertexFrom.edges.length)]
+        : vertexFrom.houseEdge;
     const edge = graph.edges[edgeIndex];
 
-    const forward = edge.a === vertexFrom.id;
+    const forward = edge.a === vertexFromIndex;
 
-    let homeTimeStart = -options.waitAtHome * 1000 - random() * options.timeOutside * 1000;
+    const waitAtHome = addDeviation(random, options.waitAtHome, options.humanDeviation);
+    const timeOutside = addDeviation(random, options.timeOutside, options.humanDeviation);
+
+    let homeTimeStart = -waitAtHome * 1000 - random() * options.timeOutside * 1000;
 
     if (vertexFrom.type === 'house') {
-        homeTimeStart = -random() * options.waitAtHome * 1000;
+        homeTimeStart = -random() * waitAtHome * 1000;
     }
 
     const human: Human = {
@@ -191,25 +233,31 @@ function createHuman(
         diseaseStart: 0,
         stoped,
         homeTimeStart,
+
+        immunityAfter: addDeviation(random, options.immunityAfter, options.humanDeviation),
+        waitAtHome,
+        timeOutside,
     };
 
     return human;
 }
 
+function addDeviation(random: () => number, value: number, deviation: number) {
+    return value + (random() - 0.5) * value * deviation;
+}
+
 function updateHuman(
-    graph: Graph,
+    graph: ClientGraph,
     random: () => number,
-    options: SimulationOptions,
+    options: SimulationStartOptions,
     human: Human,
     now: number,
 ) {
-    const distance = options.humanSpeed * (now - human.startTime);
-
-    if (human.state === 'disease' && now - human.diseaseStart > options.immunityAfter * 1000) {
+    if (human.state === 'disease' && now - human.diseaseStart > human.immunityAfter * 1000) {
         human.state = 'immune';
     }
 
-    if (human.stoped || now - human.homeTimeStart < options.waitAtHome * 1000) {
+    if (human.stoped || humanAtHome(human, now)) {
         return;
     }
 
@@ -219,10 +267,21 @@ function updateHuman(
     const humanEdge = graph.edges[human.edge];
     const geometry = humanEdge.geometry;
 
+    const segment = [
+        [0, 0],
+        [0, 0],
+    ];
+
+    const distance = options.humanSpeed * (now - human.startTime);
+
     for (let i = 0; i < geometry.length - 1; i++) {
-        const segment = human.forward
-            ? [geometry[i], geometry[i + 1]]
-            : [geometry[geometry.length - 1 - i], geometry[geometry.length - 1 - (i + 1)]];
+        if (human.forward) {
+            segment[0] = geometry[i];
+            segment[1] = geometry[i + 1];
+        } else {
+            segment[0] = geometry[geometry.length - 1 - i];
+            segment[1] = geometry[geometry.length - 1 - (i + 1)];
+        }
 
         const length = vec2.dist(segment[0], segment[1]);
         if (distance < passed + length) {
@@ -244,16 +303,7 @@ function updateHuman(
             vec2.copy(human.coords, endVertex.coords);
         }
 
-        const prevEdgeIndex = endVertex.edges.indexOf(human.edge);
-        human.edge = chooseNextEdge(
-            graph,
-            random,
-            options,
-            human,
-            now,
-            prevEdgeIndex,
-            endVertex.edges,
-        );
+        human.edge = chooseNextEdge(random, human, now, human.edge, endVertex);
         human.startTime = now;
 
         const newHumanEdge = graph.edges[human.edge];
@@ -261,35 +311,58 @@ function updateHuman(
     }
 }
 
+function humanAtHome(human: Human, now: number) {
+    return human.stoped || now - human.homeTimeStart < human.waitAtHome * 1000;
+}
+
 function chooseNextEdge(
-    graph: Graph,
     random: () => number,
-    options: SimulationOptions,
     human: Human,
     now: number,
-    prevEdgeIndex: number,
-    edgeIndices: number[],
+    prevEdgeId: number,
+    vertex: ClientGraphVertex,
 ) {
+    /**
+     * Выбираем всегда дом, если:
+     * 1. Кроме дома больше ничего нет
+     * 2. Время прибывания на улице истекло
+     */
+    if (
+        vertex.edges.length === 0 ||
+        (vertex.houseEdge !== -1 &&
+            now - (human.homeTimeStart + human.waitAtHome * 1000) > human.timeOutside * 1000)
+    ) {
+        return vertex.houseEdge;
+    }
+
+    const edgeIndices = vertex.edges;
     let edgeIndex = Math.floor(random() * edgeIndices.length);
 
     // Если выбралась предыдущая грань, то попробуй выбрать другую
-    if (edgeIndices.length > 1 && edgeIndex === prevEdgeIndex) {
+    if (edgeIndices.length > 1 && edgeIndices[edgeIndex] === prevEdgeId) {
         edgeIndex = (edgeIndex + 1) % edgeIndices.length;
-    }
-
-    // Если чел недавно был в доме, то попробуй выбрать другую грань
-    if (
-        edgeIndices.length > 1 &&
-        now - (human.homeTimeStart + options.waitAtHome * 1000) < options.timeOutside * 1000 &&
-        graph.edges[edgeIndices[edgeIndex]].type === 'house'
-    ) {
-        edgeIndex = (edgeIndex + 1) % edgeIndices.length;
-
-        // Если выбралась предыдущая грань, то попробуй выбрать другую
-        if (edgeIndices.length > 1 && edgeIndex === prevEdgeIndex) {
-            edgeIndex = (edgeIndex + 1) % edgeIndices.length;
-        }
     }
 
     return edgeIndices[edgeIndex];
+}
+
+function prepareGraph(graph: Graph): ClientGraph {
+    // Распаковываем граф пришедший с сервера
+    unpackGraph(graph);
+
+    /**
+     * А также вынимаем из вершин грани примыкающие к домам и ставим в их отдельное поле houseEdge,
+     * чтобы потом можно было легко его найти и не делать find по всем граням вершины.
+     */
+    graph.vertices.forEach((v) => {
+        const houseEdgeVertexIndex = v.edges.findIndex((i) => graph.edges[i].type === 'house');
+        if (houseEdgeVertexIndex !== -1) {
+            (v as any).houseEdge = v.edges[houseEdgeVertexIndex];
+            v.edges.splice(houseEdgeVertexIndex, 1);
+        } else {
+            (v as any).houseEdge = -1;
+        }
+    });
+
+    return graph as any;
 }

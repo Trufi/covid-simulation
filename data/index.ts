@@ -55,5 +55,5 @@ function convertCity(city: string) {
 //     }
 //     convertCity(city);
 // });
-// // convertCity('omsk');
+// convertCity('chelyabinsk');
 convertCity('dubai');

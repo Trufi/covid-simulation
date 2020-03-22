@@ -1,10 +1,10 @@
-import { MapClass, Marker } from '@2gis/jakarta';
+import { MapClass } from '@2gis/jakarta';
 import * as dat from 'dat.gui';
 
-import { SimulationOptions } from '../src/types';
+import { SimulationStartOptions, SimulationIcons } from '../src/types';
 import { Simulation } from '../src';
 import { drawStats } from './stats';
-import { coordinatesPrecision, throttle, parseQuery } from './utils';
+import { coordinatesPrecision, throttle, parseQuery, getCircleIcon } from './utils';
 import { drawGraph, clearGraph } from './graph';
 
 const defaultMapOptions = {
@@ -15,16 +15,17 @@ const defaultMapOptions = {
 
 const mapOptions = { ...defaultMapOptions };
 
-const defaultSimulationOptions: Omit<SimulationOptions, 'dataUrl'> = {
+const defaultSimulationOptions: Omit<SimulationStartOptions, 'dataUrl'> = {
     randomSeed: 15,
-    diseaseRange: 30,
-    immunityAfter: 15,
+    diseaseRange: 1,
+    immunityAfter: 10,
     waitAtHome: 2,
     timeOutside: 5,
     humansCount: 4000,
     humansStop: 0,
     diseaseStartCount: 50,
     humanSpeed: 100,
+    humanDeviation: 0.5,
 };
 
 const simulationOptions = { ...defaultSimulationOptions };
@@ -83,9 +84,29 @@ const map = new MapClass(document.getElementById('map') as HTMLDivElement, {
     pitch: mapOptions.pitch,
 });
 
+window.addEventListener('resize', () => map.invalidateSize());
 map.on('click', (ev) => console.log(ev.lngLat));
 
-const simulation = new Simulation(map, Marker);
+const iconSize = 10;
+const icons: SimulationIcons = {
+    virgin: {
+        width: iconSize,
+        height: iconSize,
+        url: getCircleIcon('rgba(170, 198, 202, 0.8)', 5),
+    },
+    disease: {
+        width: iconSize,
+        height: iconSize,
+        url: getCircleIcon('rgba(255, 60, 60, 0.8)', 5),
+    },
+    immune: {
+        width: iconSize,
+        height: iconSize,
+        url: getCircleIcon('rgba(0, 165, 40, 0.8)', 5),
+    },
+};
+
+const simulation = new Simulation(map, { icons });
 
 function start() {
     simulation.start(
@@ -201,10 +222,11 @@ simFolder.add(simulationOptions, 'diseaseRange', 1, 500, 1).onChange(simulationU
 simFolder.add(simulationOptions, 'immunityAfter', 1, 240, 1).onChange(simulationUpdate);
 simFolder.add(simulationOptions, 'waitAtHome', 0, 100, 0.1).onChange(simulationUpdate);
 simFolder.add(simulationOptions, 'timeOutside', 0, 100, 0.1).onChange(simulationUpdate);
-simFolder.add(simulationOptions, 'humansCount', 0, 25000, 1).onChange(simulationUpdate);
+simFolder.add(simulationOptions, 'humansCount', 0, 50000, 1).onChange(simulationUpdate);
 simFolder.add(simulationOptions, 'diseaseStartCount', 0, 5000, 1).onChange(simulationUpdate);
 simFolder.add(simulationOptions, 'humansStop', 0, 1, 0.01).onChange(simulationUpdate);
 simFolder.add(simulationOptions, 'humanSpeed', 0, 500, 1).onChange(simulationUpdate);
+simFolder.add(simulationOptions, 'humanDeviation', 0, 1, 0.1).onChange(simulationUpdate);
 
 gui.add(cityOptions, 'city', Object.keys(citySettings)).onChange(() => {
     map.setCenter(citySettings[cityOptions.city].center);
@@ -229,9 +251,7 @@ function showHideExport() {
 }
 exportCopy.onclick = () => {
     exportText.select();
-    exportText.setSelectionRange(0, 99999); /*For mobile devices*/
-
-    /* Copy the text inside the text field */
+    exportText.setSelectionRange(0, 99999);
     document.execCommand('copy');
 };
 exportCloseButton.onclick = showHideExport;

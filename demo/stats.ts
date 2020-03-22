@@ -8,8 +8,8 @@ statsCanvas.height = statsSize[1];
 
 const colors = {
     virgin: [170, 198, 202],
-    disease: [187, 100, 29],
-    immune: [203, 138, 192],
+    disease: [255, 60, 60],
+    immune: [0, 165, 40],
 };
 
 export function drawStats(stats: SimulationStat[]) {
