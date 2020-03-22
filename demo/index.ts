@@ -87,22 +87,22 @@ const map = new MapClass(document.getElementById('map') as HTMLDivElement, {
 window.addEventListener('resize', () => map.invalidateSize());
 map.on('click', (ev) => console.log(ev.lngLat));
 
-const iconSize = 10;
+const iconSize = 6;
 const icons: SimulationIcons = {
     virgin: {
         width: iconSize,
         height: iconSize,
-        url: getCircleIcon('rgba(170, 198, 202, 0.8)', 5),
+        url: getCircleIcon('#979797', 3, '#ffffff', 2),
     },
     disease: {
         width: iconSize,
         height: iconSize,
-        url: getCircleIcon('rgba(255, 60, 60, 0.8)', 5),
+        url: getCircleIcon('#FF3C3C', 3),
     },
     immune: {
         width: iconSize,
         height: iconSize,
-        url: getCircleIcon('rgba(0, 165, 40, 0.8)', 5),
+        url: getCircleIcon('#05A82D', 3),
     },
 };
 
