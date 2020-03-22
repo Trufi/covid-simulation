@@ -1,7 +1,7 @@
 import * as vec2 from '@2gis/gl-matrix/vec2';
 import KDBush from 'kdbush';
 
-import { Render } from './Render';
+import { Render } from './render';
 import { Graph } from '../data/types';
 import { projectGeoToMap, createRandomFunction, clamp } from './utils';
 import {
