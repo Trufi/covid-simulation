@@ -71,10 +71,6 @@ export class Render {
     public setPoints(humans: Human[], min: number[], max: number[]) {
         this.points = [];
 
-        if (!humans.length) {
-            return;
-        }
-
         this.points = humans.map((human) => ({
             state: human.state,
             human,

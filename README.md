@@ -78,7 +78,7 @@ interface SimulationStartOptions {
      * Относительное отклонение параметров immunityAfter, waitAtHome, timeOutside.
      * Принимает значения от 0 до 1.
      * Итоговый параметр для каждого человека высчитывается по формуле:
-     * parameter = parameter + (random() - 0.5) * humanDeviation * parameter
+     *   parameter = parameter + (random() - 0.5) * humanDeviation * parameter
      */
     humanDeviation: number;
 
@@ -88,7 +88,7 @@ interface SimulationStartOptions {
     humansCount: number;
 
     /**
-     * Количество людей, которое никогда не будет двигаться. Такие люди появляются сразу в домах.
+     * Количество людей, которые никогда не будут двигаться, такие люди появляются сразу в домах
      */
     humansStop: number;
 

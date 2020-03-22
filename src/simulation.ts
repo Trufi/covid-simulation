@@ -123,33 +123,32 @@ export class Simulation {
 
         const graph = this.graph;
 
-        if (!graph) {
-            return;
+        if (graph) {
+            const now = Date.now();
+            let delta = Date.now() - this.lastUpdate;
+            if (delta > 1000) {
+                delta = 16;
+            }
+
+            this.simulationTime += delta;
+
+            this.humans.forEach((human) =>
+                updateHuman(graph, this.random, this.options, human, this.simulationTime),
+            );
+
+            const spreadUpdateInterval = Math.max(delta, 100);
+            if (this.simulationTime - this.lastSpreadTime > spreadUpdateInterval) {
+                this.spreadDisease(this.simulationTime, spreadUpdateInterval);
+                this.lastSpreadTime = this.simulationTime;
+            }
+
+            this.collectStat();
+
+            this.lastUpdate = now;
         }
 
-        const now = Date.now();
-        let delta = Date.now() - this.lastUpdate;
-        if (delta > 1000) {
-            delta = 16;
-        }
-
-        this.simulationTime += delta;
-
-        this.humans.forEach((human) =>
-            updateHuman(graph, this.random, this.options, human, this.simulationTime),
-        );
-
-        const spreadUpdateInterval = Math.max(delta, 100);
-        if (this.simulationTime - this.lastSpreadTime > spreadUpdateInterval) {
-            this.spreadDisease(this.simulationTime, spreadUpdateInterval);
-            this.lastSpreadTime = this.simulationTime;
-        }
-
-        this.collectStat();
-
+        // Рендерить все равно нужно, чтобы пустой граф очищался
         this.render.render();
-
-        this.lastUpdate = now;
     };
 
     private spreadDisease(now: number, dt: number) {
