@@ -8,7 +8,7 @@ build:
         - node -v
         - npm -v
         - npm ci
-        - npm run build
+        - npm run build:demo
     tags:
         - 2gis
         - docker

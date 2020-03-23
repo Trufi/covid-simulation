@@ -63,5 +63,9 @@ module.exports = (_, args) => {
         },
     };
 
-    return [library, demo];
+    if (args.demo) {
+        return demo;
+    }
+
+    return library;
 };
