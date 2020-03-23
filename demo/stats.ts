@@ -1,55 +1,76 @@
 import { SimulationStat } from '../src';
 
-const statsCanvas = document.getElementById('stats') as HTMLCanvasElement;
-const statsCtx = statsCanvas.getContext('2d') as CanvasRenderingContext2D;
-const statsSize = [600, 70];
-statsCanvas.width = statsSize[0];
-statsCanvas.height = statsSize[1];
+const canvas = document.getElementById('stats') as HTMLCanvasElement;
+const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+
+const size = [300, 60];
+
+canvas.width = size[0] * window.devicePixelRatio;
+canvas.height = size[1] * window.devicePixelRatio;
+canvas.style.width = size[0] + 'px';
+canvas.style.height = size[1] + 'px';
 
 const colors = {
-    virgin: [170, 198, 202],
+    virgin: [246, 246, 246],
     disease: [255, 60, 60],
     immune: [0, 165, 40],
 };
 
-export function drawStats(stats: SimulationStat[]) {
-    const ctx = statsCtx;
-    ctx.clearRect(0, 0, statsSize[0], statsSize[1]);
+export interface StatsOptions {
+    data: SimulationStat[];
 
-    if (!stats.length) {
+    /**
+     * Время прошедщее с запуска симуляции
+     */
+    time: number;
+
+    /**
+     * Общее время, которое будет длиться симуляция
+     */
+    totalDuration: number;
+}
+
+export function drawStats({ data, time, totalDuration }: StatsOptions) {
+    const pixelSize = [size[0] * window.devicePixelRatio, size[1] * window.devicePixelRatio];
+
+    ctx.fillStyle = `rgba(${colors.virgin.join(',')}, 1)`;
+    ctx.fillRect(0, 0, pixelSize[0], pixelSize[1]);
+
+    if (!data.length) {
         return;
     }
-    const firstStat = stats[0];
-    const count = firstStat.disease + firstStat.virgin + firstStat.immune;
 
-    const width = 1;
-    const newColumnInMs = 100;
+    const timeByPixel = totalDuration / pixelSize[0];
 
-    let lastColumnTime = 0;
-    const statsToView: SimulationStat[] = [];
-    for (let i = 0; i < stats.length; i++) {
-        const stat = stats[i];
-        if (stat.time - lastColumnTime > newColumnInMs) {
-            statsToView.push(stat);
-            lastColumnTime = stat.time;
+    const diseaseHeights: number[] = [];
+    const immuneHeights: number[] = [];
+
+    const fillWidth = (time / totalDuration) * pixelSize[0];
+
+    for (let x = 0; x < fillWidth; x++) {
+        const pixelTime = x * timeByPixel;
+        const statIndex = Math.floor((pixelTime / time) * data.length);
+
+        const stat = data[statIndex];
+        if (!stat) {
+            continue;
         }
+        const count = stat.disease + stat.virgin + stat.immune;
+        diseaseHeights[x] = (stat.disease / count) * pixelSize[1];
+        immuneHeights[x] = (stat.immune / count) * pixelSize[1];
     }
 
-    const columnsCount = statsSize[0] / width;
-    for (let x = 0; x < columnsCount; x++) {
-        const s = statsToView[x];
-        if (!s) {
-            return;
-        }
-        ctx.fillStyle = `rgba(${colors.virgin.join(',')}, 1)`;
+    ctx.beginPath();
+    ctx.moveTo(0, pixelSize[1]);
+    diseaseHeights.forEach((y, x) => ctx.lineTo(x, pixelSize[1] - y));
+    ctx.lineTo(diseaseHeights.length - 1, pixelSize[1]);
+    ctx.fillStyle = `rgba(${colors.disease.join(',')}, 1)`;
+    ctx.fill();
 
-        ctx.fillRect(x * width, 0, width, statsSize[1]);
-
-        ctx.fillStyle = `rgba(${colors.immune.join(',')}, 1)`;
-        ctx.fillRect(x * width, 0, width, (s.immune / count) * statsSize[1]);
-
-        const diseaseH = (s.disease / count) * statsSize[1];
-        ctx.fillStyle = `rgba(${colors.disease.join(',')}, 1)`;
-        ctx.fillRect(x * width, statsSize[1] - diseaseH, width, diseaseH);
-    }
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    immuneHeights.forEach((y, x) => ctx.lineTo(x, y));
+    ctx.fillStyle = `rgba(${colors.immune.join(',')}, 1)`;
+    ctx.lineTo(immuneHeights.length - 1, 0);
+    ctx.fill();
 }

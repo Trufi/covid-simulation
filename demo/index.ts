@@ -129,7 +129,12 @@ function start() {
 
 function loop() {
     requestAnimationFrame(loop);
-    drawStats(simulation.getStats());
+    const data = simulation.getStats();
+    drawStats({
+        data,
+        time: data[data.length - 1]?.time || 0,
+        totalDuration: 40000,
+    });
 }
 requestAnimationFrame(loop);
 
