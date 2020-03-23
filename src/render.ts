@@ -1,4 +1,3 @@
-import * as vec2 from '@2gis/gl-matrix/vec2';
 import { Human, RenderContext, SimulationIcons } from './types';
 import { PointBatch, PointBatchEntity } from './pointBatch';
 
@@ -7,12 +6,6 @@ interface RenderPoint {
     human: Human;
     point: PointBatchEntity;
 }
-
-const iconTypeToIndex: { [key in Human['state']]: number } = {
-    virgin: 0,
-    disease: 1,
-    immune: 2,
-};
 
 export class Render {
     private canvas: HTMLCanvasElement;
@@ -26,6 +19,7 @@ export class Render {
         this.canvas.style.left = '0';
         this.canvas.style.top = '0';
         this.canvas.style.pointerEvents = 'none';
+        this.canvas.style.background = 'transparent';
 
         const mapCanvas = map.modules.layout.mapContainer.querySelector('canvas');
         const mapCanvasNextSibling = mapCanvas?.nextSibling;
@@ -43,6 +37,7 @@ export class Render {
         const gl = this.canvas.getContext('webgl', {
             antialias: true,
             alpha: true,
+            // premultiplyAlpha: true,
         }) as WebGLRenderingContext;
 
         const extensions = {
@@ -59,7 +54,7 @@ export class Render {
         window.addEventListener('resize', this.updateSize);
         this.updateSize();
 
-        gl.clearColor(1, 1, 1, 0);
+        gl.clearColor(0, 0, 0, 0);
 
         this.pointBatch = new PointBatch(this.renderContext, [
             icons.virgin,
@@ -75,7 +70,7 @@ export class Render {
             state: human.state,
             human,
             point: {
-                icon: iconTypeToIndex[human.state],
+                icon: human.state,
                 position: [human.coords[0], human.coords[1]],
             },
         }));
@@ -88,11 +83,15 @@ export class Render {
     }
 
     public render() {
-        this.points.forEach(({ point, human }) => {
-            point.icon = iconTypeToIndex[human.state];
-            vec2.copy(point.position, human.coords);
-        });
+        for (let i = 0; i < this.points.length; i++) {
+            const { point, human } = this.points[i];
+            point.position[0] = human.coords[0];
+            point.position[1] = human.coords[1];
+            point.icon = human.state;
+        }
 
+        const { gl } = this.renderContext;
+        gl.clear(gl.COLOR_BUFFER_BIT);
         const cameraMatrix = this.map.modules.renderer.vpMatrix;
         this.pointBatch.render(cameraMatrix, this.map.getSize(), this.map.getZoom());
     }

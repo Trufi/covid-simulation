@@ -12,6 +12,7 @@ import {
     ClientGraph,
     ClientGraphVertex,
     SimulationOptions,
+    HumanState,
 } from './types';
 import { unpackGraph } from '../data/pack';
 
@@ -180,7 +181,7 @@ export class Simulation {
 
         const humans = this.humans;
         const kd = new KDBush(
-            humans.filter((h) => h.state === 'disease'),
+            humans.filter((h) => h.state === HumanState.Disease),
             (h) => h.coords[0],
             (h) => h.coords[1],
             64,
@@ -188,7 +189,7 @@ export class Simulation {
         );
 
         humans.forEach((h) => {
-            if (h.state !== 'virgin') {
+            if (h.state !== HumanState.Virgin) {
                 return;
             }
 
@@ -202,21 +203,21 @@ export class Simulation {
             const nearestHumanIndices = kd.within(h.coords[0], h.coords[1], radius);
 
             if (nearestHumanIndices.length) {
-                h.state = 'disease';
+                h.state = HumanState.Disease;
                 h.diseaseStart = this.simulationTime;
             }
         });
     }
 
     private collectStat() {
-        const stat: SimulationStat = {
+        const array = [0, 0, 0];
+        this.humans.forEach((h) => array[h.state]++);
+        this.stats.push({
             time: this.simulationTime,
-            virgin: 0,
-            disease: 0,
-            immune: 0,
-        };
-        this.humans.forEach((h) => stat[h.state]++);
-        this.stats.push(stat);
+            virgin: array[0],
+            disease: array[1],
+            immune: array[2],
+        });
     }
 }
 
@@ -252,7 +253,7 @@ function createHuman(
         forward,
         edge: edgeIndex,
         startTime: 0,
-        state: disease ? 'disease' : 'virgin',
+        state: disease ? HumanState.Disease : HumanState.Virgin,
         diseaseStart: 0,
         stoped,
         homeTimeStart,
@@ -276,8 +277,11 @@ function updateHuman(
     human: Human,
     now: number,
 ) {
-    if (human.state === 'disease' && now - human.diseaseStart > human.immunityAfter * 1000) {
-        human.state = 'immune';
+    if (
+        human.state === HumanState.Disease &&
+        now - human.diseaseStart > human.immunityAfter * 1000
+    ) {
+        human.state = HumanState.Immune;
     }
 
     if (human.stoped || humanAtHome(human, now)) {

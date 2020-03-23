@@ -48,6 +48,8 @@ module.exports = (_, args) => {
             port: 3000,
             stats: {
                 modules: false,
+                // https://github.com/TypeStrong/ts-loader#transpileonly-boolean-defaultfalse
+                warningsFilter: /export .* was not found in '\.\/types/,
             },
             disableHostCheck: true,
         },

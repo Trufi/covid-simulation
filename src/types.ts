@@ -1,11 +1,17 @@
 import { GraphEdge } from '../data/types';
 
+export const enum HumanState {
+    Virgin = 0,
+    Disease = 1,
+    Immune = 2,
+}
+
 export interface Human {
     coords: number[];
     edge: number;
     forward: boolean;
     startTime: number;
-    state: 'virgin' | 'disease' | 'immune';
+    state: HumanState;
     diseaseStart: number;
     stoped: boolean;
     homeTimeStart: number;
