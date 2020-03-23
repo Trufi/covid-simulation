@@ -37,6 +37,7 @@ export class Simulation {
     private lastUpdate: number;
     private simulationTime: number;
     private lastSpreadTime: number;
+    private paused: boolean;
 
     constructor(map: import('@2gis/jakarta').Map, options: SimulationOptions) {
         this.render = new Render(map, options.icons);
@@ -46,9 +47,13 @@ export class Simulation {
         this.lastUpdate = Date.now();
         this.simulationTime = 0;
         this.lastSpreadTime = 0;
+        this.paused = false;
         requestAnimationFrame(this.update);
     }
 
+    /**
+     * Стартует симуляцию с заданными параметрами
+     */
     public start(options: SimulationStartOptions, filterOptions?: SimulationFilterOptions) {
         this.options = options;
         this.stop();
@@ -104,6 +109,9 @@ export class Simulation {
             });
     }
 
+    /**
+     * Полностью останавливают и удаляет симуляцию
+     */
     public stop() {
         this.render.setPoints([], [0, 0], [0, 0]);
         this.random = createRandomFunction(this.options.randomSeed);
@@ -112,6 +120,22 @@ export class Simulation {
         this.graph = undefined;
         this.simulationTime = 0;
         this.lastSpreadTime = 0;
+        this.paused = false;
+    }
+
+    /**
+     * Ставит симуляцию на паузу, но не удаляет с карты ничего
+     */
+    public pause() {
+        this.paused = true;
+    }
+
+    /**
+     * Возобновляет симуляцию поставленную на паузу
+     */
+    public play() {
+        this.paused = false;
+        this.lastUpdate = Date.now();
     }
 
     public getStats() {
@@ -123,10 +147,10 @@ export class Simulation {
 
         const graph = this.graph;
 
-        if (graph) {
+        if (graph && !this.paused) {
             const now = Date.now();
             let delta = Date.now() - this.lastUpdate;
-            if (delta > 1000) {
+            if (delta > 200) {
                 delta = 16;
             }
 

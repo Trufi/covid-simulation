@@ -262,3 +262,16 @@ exportCopy.onclick = () => {
 };
 exportCloseButton.onclick = showHideExport;
 gui.add({ export: showHideExport }, 'export');
+
+gui.add(
+    {
+        'pause / play': () => {
+            if ((simulation as any).paused) {
+                simulation.play();
+            } else {
+                simulation.pause();
+            }
+        },
+    },
+    'pause / play',
+);
