@@ -10,8 +10,8 @@ module.exports = (_, args) => {
         module: {
             rules: [
                 {
-                    test: /(\.ts|\.tsx)$/,
-                    exclude: /node_modules/,
+                    test: /(\.ts|\.js)$/,
+                    exclude: /node_modules(\/|\\)(?!@2gis(\/|\\)gl-matrix|2gl|kdbush)/,
                     use: {
                         loader: 'ts-loader',
                         options: {
