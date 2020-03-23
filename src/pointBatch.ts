@@ -59,9 +59,11 @@ const uvs = [
     [0, 1],
 ];
 
+export type PointIconSize = number | Array<[number, number]>;
+
 export interface PointIcon {
-    width: number;
-    height: number;
+    width: PointIconSize;
+    height: PointIconSize;
     url: string;
 }
 
@@ -73,7 +75,7 @@ interface AtlasIcon {
 }
 
 interface Atlas {
-    icons: AtlasIcon[];
+    icons: Array<Array<[number, AtlasIcon]>>;
     imagePromise: Promise<HTMLCanvasElement>;
 }
 
@@ -98,6 +100,7 @@ export class PointBatch {
     private uvData?: InnerBufferData;
     private uvBuffer?: Buffer;
 
+    private offsetData?: InnerBufferData;
     private offsetBuffer?: Buffer;
 
     private atlas: Atlas;
@@ -147,21 +150,12 @@ export class PointBatch {
         const verticesPerPoint = 6;
         this.vertexCount = points.length * verticesPerPoint;
 
-        const offsetData = {
-            array: new Int16Array(this.vertexCount * 2),
-            index: 0,
-        };
-        points.forEach((point) => {
-            const icon = this.atlas.icons[point.icon];
-            for (let i = 0; i < 6; i++) {
-                const offset = offsets[i];
-                offsetData.array[offsetData.index++] = (offset[0] * icon.w) / 2;
-                offsetData.array[offsetData.index++] = (offset[1] * icon.h) / 2;
-            }
-        });
-
         this.positionData = {
             array: new Float32Array(this.vertexCount * verticesPerPoint),
+            index: 0,
+        };
+        this.offsetData = {
+            array: new Int16Array(this.vertexCount * 2),
             index: 0,
         };
         this.uvData = {
@@ -177,10 +171,11 @@ export class PointBatch {
         this.positionBuffer.drawType = Buffer.DynamicDraw;
         this.positionBuffer.prepare(gl);
 
-        this.offsetBuffer = new Buffer(offsetData.array, {
+        this.offsetBuffer = new Buffer(this.offsetData.array, {
             itemSize: 2,
             dataType: Buffer.Short,
         });
+        this.offsetBuffer.drawType = Buffer.DynamicDraw;
         this.offsetBuffer.prepare(gl);
 
         this.uvBuffer = new Buffer(this.uvData.array, {
@@ -198,12 +193,12 @@ export class PointBatch {
         });
     }
 
-    public render(cameraMatrix: Mat4, mapSize: number[]) {
+    public render(cameraMatrix: Mat4, mapSize: number[], mapZoom: number) {
         if (!this.vao || !this.texture) {
             return;
         }
 
-        this.updatePoints();
+        this.updatePoints(mapZoom);
 
         const { gl } = this.renderContext;
         gl.disable(gl.DEPTH_TEST);
@@ -224,15 +219,24 @@ export class PointBatch {
         gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
     }
 
-    private updatePoints() {
+    private updatePoints(mapZoom: number) {
         const positionData = this.positionData;
+        const offsetData = this.offsetData;
         const uvData = this.uvData;
 
-        if (!positionData || !uvData || !this.positionBuffer || !this.uvBuffer) {
+        if (
+            !positionData ||
+            !uvData ||
+            !offsetData ||
+            !this.positionBuffer ||
+            !this.offsetBuffer ||
+            !this.uvBuffer
+        ) {
             return;
         }
 
         positionData.index = 0;
+        offsetData.index = 0;
         uvData.index = 0;
 
         const size = [this.max[0] - this.min[0], this.max[1] - this.min[1]];
@@ -244,8 +248,23 @@ export class PointBatch {
         const invSize = [1 / size[0], 1 / size[1]];
 
         const tempPosition = [0, 0];
+
+        const icons = this.atlas.icons.map((zoomIcons) => {
+            let result = zoomIcons[0][1];
+
+            for (let i = 0; i < zoomIcons.length; i++) {
+                const [zoom, icon] = zoomIcons[i];
+                if (zoom > mapZoom) {
+                    break;
+                }
+                result = icon;
+            }
+
+            return result;
+        });
+
         this.points.forEach((point) => {
-            const icon = this.atlas.icons[point.icon];
+            const icon = icons[point.icon];
 
             vec2.sub(tempPosition, point.position, this.min);
             vec2.multiply(tempPosition, tempPosition, invSize);
@@ -253,6 +272,10 @@ export class PointBatch {
             for (let i = 0; i < 6; i++) {
                 positionData.array[positionData.index++] = tempPosition[0];
                 positionData.array[positionData.index++] = tempPosition[1];
+
+                const offset = offsets[i];
+                offsetData.array[offsetData.index++] = (offset[0] * icon.w) / 2;
+                offsetData.array[offsetData.index++] = (offset[1] * icon.h) / 2;
 
                 const uv = uvs[i];
                 uvData.array[uvData.index++] = Math.floor(
@@ -266,6 +289,7 @@ export class PointBatch {
 
         const { gl } = this.renderContext;
         this.positionBuffer.subData(gl, 0, positionData.array);
+        this.offsetBuffer.subData(gl, 0, offsetData.array);
         this.uvBuffer.subData(gl, 0, uvData.array);
     }
 
@@ -292,14 +316,24 @@ function createAtlas(sourceIcons: PointIcon[]) {
     let x = 0;
     const y = margin;
 
-    const icons = sourceIcons.map(({ width, height }) => {
-        x += margin;
-        const w = width * window.devicePixelRatio;
-        const h = height * window.devicePixelRatio;
-        const icon: AtlasIcon = { x, y, w, h };
-        x += margin + w;
+    const icons: Array<Array<[number, AtlasIcon]>> = [];
 
-        return icon;
+    sourceIcons.forEach(({ width, height }, index) => {
+        const curveWidth: Array<[number, number]> =
+            typeof width === 'number' ? [[0, width]] : width;
+        const curveHeight: Array<[number, number]> =
+            typeof height === 'number' ? [[0, height]] : height;
+
+        icons[index] = [];
+
+        for (let i = 0; i < curveWidth.length; i++) {
+            x += margin;
+            const w = curveWidth[i][1] * window.devicePixelRatio;
+            const h = curveHeight[i][1] * window.devicePixelRatio;
+            const icon: AtlasIcon = { x, y, w, h };
+            x += margin + w;
+            icons[index].push([curveWidth[i][0], icon]);
+        }
     });
 
     const promises = sourceIcons.map((icon) => loadImage(icon.url));
@@ -312,8 +346,9 @@ function createAtlas(sourceIcons: PointIcon[]) {
         canvas.height = atlasSize[1];
 
         images.forEach((img, i) => {
-            const icon = icons[i];
-            ctx.drawImage(img, icon.x, icon.y, icon.w, icon.h);
+            icons[i].forEach(([, icon]) => {
+                ctx.drawImage(img, icon.x, icon.y, icon.w, icon.h);
+            });
         });
 
         return canvas;

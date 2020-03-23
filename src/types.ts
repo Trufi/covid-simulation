@@ -15,20 +15,22 @@ export interface Human {
     timeOutside: number;
 }
 
+export type SimulationIconSize = number | Array<[number, number]>;
+
 export interface SimulationIcons {
     virgin: {
-        width: number;
-        height: number;
+        width: SimulationIconSize;
+        height: SimulationIconSize;
         url: string;
     };
     disease: {
-        width: number;
-        height: number;
+        width: SimulationIconSize;
+        height: SimulationIconSize;
         url: string;
     };
     immune: {
-        width: number;
-        height: number;
+        width: SimulationIconSize;
+        height: SimulationIconSize;
         url: string;
     };
 }

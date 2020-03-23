@@ -87,7 +87,13 @@ const map = new MapClass(document.getElementById('map') as HTMLDivElement, {
 window.addEventListener('resize', () => map.invalidateSize());
 map.on('click', (ev) => console.log(ev.lngLat));
 
-const iconSize = 6;
+const iconSize: Array<[number, number]> = [
+    [8, 4],
+    [10, 6],
+    [15, 8],
+    [16, 10],
+];
+
 const icons: SimulationIcons = {
     virgin: {
         width: iconSize,

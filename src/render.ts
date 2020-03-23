@@ -94,7 +94,7 @@ export class Render {
         });
 
         const cameraMatrix = this.map.modules.renderer.vpMatrix;
-        this.pointBatch.render(cameraMatrix, this.map.getSize());
+        this.pointBatch.render(cameraMatrix, this.map.getSize(), this.map.getZoom());
     }
 
     private updateSize = () => {
