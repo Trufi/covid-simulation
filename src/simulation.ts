@@ -35,20 +35,20 @@ export class Simulation {
     private random: () => number;
     private humans: Human[];
     private stats: SimulationStat[];
-    private lastUpdate: number;
     private simulationTime: number;
     private lastSpreadTime: number;
     private paused: boolean;
+    private speed: number;
 
     constructor(map: import('@2gis/jakarta').Map, options: SimulationOptions) {
         this.render = new Render(map, options.icons);
         this.random = createRandomFunction(this.options.randomSeed);
         this.humans = [];
         this.stats = [];
-        this.lastUpdate = Date.now();
         this.simulationTime = 0;
         this.lastSpreadTime = 0;
         this.paused = false;
+        this.speed = 1;
         requestAnimationFrame(this.update);
     }
 
@@ -122,6 +122,7 @@ export class Simulation {
         this.simulationTime = 0;
         this.lastSpreadTime = 0;
         this.paused = false;
+        this.speed = 1;
     }
 
     /**
@@ -136,7 +137,10 @@ export class Simulation {
      */
     public play() {
         this.paused = false;
-        this.lastUpdate = Date.now();
+    }
+
+    public setSpeed(s: number) {
+        this.speed = s;
     }
 
     public getStats() {
@@ -149,13 +153,8 @@ export class Simulation {
         const graph = this.graph;
 
         if (graph && !this.paused) {
-            const now = Date.now();
-            let delta = Date.now() - this.lastUpdate;
-            if (delta > 200) {
-                delta = 16;
-            }
-
-            this.simulationTime += delta;
+            const delta = 16;
+            this.simulationTime += delta * this.speed;
 
             this.humans.forEach((human) =>
                 updateHuman(graph, this.random, this.options, human, this.simulationTime),
@@ -168,8 +167,6 @@ export class Simulation {
             }
 
             this.collectStat();
-
-            this.lastUpdate = now;
         }
 
         // Рендерить все равно нужно, чтобы пустой граф очищался
@@ -252,6 +249,9 @@ function createHuman(
         coords: vertexFrom.coords.slice(0),
         forward,
         edge: edgeIndex,
+
+        segment: 0,
+        passed: 0,
         startTime: 0,
         state: disease ? HumanState.Disease : HumanState.Virgin,
         diseaseStart: 0,
@@ -285,35 +285,28 @@ function updateHuman(
     }
 
     if (human.stoped || humanAtHome(human, now)) {
+        human.startTime = now;
         return;
     }
-
-    let passed = 0;
-    let ended = true;
 
     const humanEdge = graph.edges[human.edge];
     const geometry = humanEdge.geometry;
 
-    const segment = [
-        [0, 0],
-        [0, 0],
-    ];
-
     const distance = options.humanSpeed * (now - human.startTime);
 
-    for (let i = 0; i < geometry.length - 1; i++) {
-        if (human.forward) {
-            segment[0] = geometry[i];
-            segment[1] = geometry[i + 1];
-        } else {
-            segment[0] = geometry[geometry.length - 1 - i];
-            segment[1] = geometry[geometry.length - 1 - (i + 1)];
-        }
+    let passed = human.passed;
+    let ended = true;
 
-        const length = vec2.dist(segment[0], segment[1]);
+    for (let i = human.segment; i < geometry.length - 1; i++) {
+        const segmentA = human.forward ? geometry[i] : geometry[geometry.length - 1 - i];
+        const segmentB = human.forward ? geometry[i + 1] : geometry[geometry.length - 1 - (i + 1)];
+
+        const length = vec2.dist(segmentB, segmentA);
         if (distance < passed + length) {
+            human.segment = i;
+            human.passed = passed;
             const t = clamp((distance - passed) / length, 0, 1);
-            vec2.lerp(human.coords, segment[0], segment[1], t);
+            vec2.lerp(human.coords, segmentA, segmentB, t);
             ended = false;
             break;
         }
@@ -332,6 +325,8 @@ function updateHuman(
 
         human.edge = chooseNextEdge(random, human, now, human.edge, endVertex);
         human.startTime = now;
+        human.segment = 0;
+        human.passed = 0;
 
         const newHumanEdge = graph.edges[human.edge];
         human.forward = newHumanEdge.a === endVertexIndex;

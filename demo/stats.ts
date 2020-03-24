@@ -42,34 +42,37 @@ export function drawStats({ data, time, totalDuration }: StatsOptions) {
 
     const timeByPixel = totalDuration / pixelSize[0];
 
-    const diseaseHeights: number[] = [];
-    const immuneHeights: number[] = [];
+    const diseaseHeights: Array<{ x: number; y: number }> = [];
+    const immuneHeights: Array<{ x: number; y: number }> = [];
 
     const fillWidth = (time / totalDuration) * pixelSize[0];
 
+    let prevStatIndex = 0;
     for (let x = 0; x < fillWidth; x++) {
         const pixelTime = x * timeByPixel;
-        const statIndex = Math.floor((pixelTime / time) * data.length);
 
-        const stat = data[statIndex];
-        if (!stat) {
-            continue;
+        for (let i = prevStatIndex; i < data.length; i++) {
+            const stat = data[i];
+            if (stat.time >= pixelTime) {
+                const count = stat.disease + stat.virgin + stat.immune;
+                diseaseHeights.push({ x, y: (stat.disease / count) * pixelSize[1] });
+                immuneHeights.push({ x, y: (stat.immune / count) * pixelSize[1] });
+                prevStatIndex = i;
+                break;
+            }
         }
-        const count = stat.disease + stat.virgin + stat.immune;
-        diseaseHeights[x] = (stat.disease / count) * pixelSize[1];
-        immuneHeights[x] = (stat.immune / count) * pixelSize[1];
     }
 
     ctx.beginPath();
     ctx.moveTo(0, pixelSize[1]);
-    diseaseHeights.forEach((y, x) => ctx.lineTo(x, pixelSize[1] - y));
+    diseaseHeights.forEach(({ y, x }) => ctx.lineTo(x, pixelSize[1] - y));
     ctx.lineTo(diseaseHeights.length - 1, pixelSize[1]);
     ctx.fillStyle = `rgba(${colors.disease.join(',')}, 1)`;
     ctx.fill();
 
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    immuneHeights.forEach((y, x) => ctx.lineTo(x, y));
+    immuneHeights.forEach(({ y, x }) => ctx.lineTo(x, y));
     ctx.fillStyle = `rgba(${colors.immune.join(',')}, 1)`;
     ctx.lineTo(immuneHeights.length - 1, 0);
     ctx.fill();

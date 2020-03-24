@@ -280,3 +280,12 @@ gui.add(
     },
     'pause / play',
 );
+
+gui.add(
+    {
+        speedUp: () => {
+            simulation.setSpeed(10);
+        },
+    },
+    'speedUp',
+);

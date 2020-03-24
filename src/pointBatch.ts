@@ -54,7 +54,10 @@ interface AtlasIcon {
 }
 
 interface Atlas {
-    icons: Array<Array<[number, AtlasIcon]>>;
+    /**
+     * index -> zoom, element -> [index -> type, element -> Icon]
+     */
+    icons: AtlasIcon[][];
     imagePromise: Promise<HTMLCanvasElement>;
 }
 
@@ -223,20 +226,7 @@ export class PointBatch {
             [size[0], size[1], 1],
         );
 
-        const icons = this.atlas.icons.map((zoomIcons) => {
-            let result = zoomIcons[0][1];
-
-            for (let i = 0; i < zoomIcons.length; i++) {
-                const [zoom, icon] = zoomIcons[i];
-                if (zoom > mapZoom) {
-                    break;
-                }
-                result = icon;
-            }
-
-            return result;
-        });
-
+        const icons = this.atlas.icons[Math.floor(mapZoom)];
         const [atlasWidth, atlasHeight] = atlasSize;
 
         this.points.forEach((point) => {
@@ -283,7 +273,11 @@ function createAtlas(sourceIcons: PointIcon[]) {
     let x = 0;
     const y = margin;
 
-    const icons: Array<Array<[number, AtlasIcon]>> = [];
+    // index -> zoom, element -> [index -> type, element -> Icon]
+    const icons: AtlasIcon[][] = [];
+    for (let i = 0; i < 21; i++) {
+        icons.push([]);
+    }
 
     sourceIcons.forEach(({ width, height }, index) => {
         const curveWidth: Array<[number, number]> =
@@ -291,15 +285,30 @@ function createAtlas(sourceIcons: PointIcon[]) {
         const curveHeight: Array<[number, number]> =
             typeof height === 'number' ? [[0, height]] : height;
 
-        icons[index] = [];
+        let prevIconZoom = -1;
+        let prevIcon: AtlasIcon | undefined;
 
         for (let i = 0; i < curveWidth.length; i++) {
+            const zoom = curveWidth[i][0];
+
             x += margin;
             const w = curveWidth[i][1] * window.devicePixelRatio;
             const h = curveHeight[i][1] * window.devicePixelRatio;
             const icon: AtlasIcon = { x, y, w, h };
             x += margin + w;
-            icons[index].push([curveWidth[i][0], icon]);
+
+            for (let z = prevIconZoom + 1; z <= zoom; z++) {
+                icons[z][index] = prevIcon || icon;
+            }
+
+            prevIcon = icon;
+            prevIconZoom = zoom;
+        }
+
+        if (prevIcon) {
+            for (let z = prevIconZoom + 1; z <= 20; z++) {
+                icons[z][index] = prevIcon;
+            }
         }
     });
 
@@ -313,7 +322,8 @@ function createAtlas(sourceIcons: PointIcon[]) {
         canvas.height = atlasSize[1];
 
         images.forEach((img, i) => {
-            icons[i].forEach(([, icon]) => {
+            icons.forEach((zoomIcons) => {
+                const icon = zoomIcons[i];
                 ctx.drawImage(img, icon.x, icon.y, icon.w, icon.h);
             });
         });

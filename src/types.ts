@@ -8,8 +8,17 @@ export const enum HumanState {
 
 export interface Human {
     coords: number[];
-    edge: number;
+
     forward: boolean;
+    edge: number;
+
+    /**
+     * Индекс сегмента грани, с учетом направления,
+     * т.е. если точка едет с конфа (forward === false), то индекса будет считаться с конца
+     */
+    segment: number;
+    passed: number;
+
     startTime: number;
     state: HumanState;
     diseaseStart: number;
