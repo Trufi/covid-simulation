@@ -206,7 +206,9 @@ export class PointBatch {
 
         this.vao.bind(this.renderContext);
 
-        gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
+        if (this.vertexCount > 0) {
+            gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
+        }
     }
 
     private updatePoints(mapZoom: number) {
