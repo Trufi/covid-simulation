@@ -1,4 +1,4 @@
-import { MapClass } from '@2gis/jakarta';
+import { MapClass } from '@webmaps/jakarta';
 import * as dat from 'dat.gui';
 
 import { SimulationStartOptions, SimulationIcons } from '../src/types';

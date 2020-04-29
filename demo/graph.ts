@@ -1,4 +1,4 @@
-import { MapClass, Polyline, Marker } from '@2gis/jakarta';
+import { MapClass, Polyline, Marker } from '@webmaps/jakarta';
 import * as vec2 from '@2gis/gl-matrix/vec2';
 import { projectGeoToMap, projectMapToGeo } from '../src/utils';
 import { getCircleIcon } from './utils';

@@ -40,7 +40,7 @@ export class Simulation {
     private paused: boolean;
     private speed: number;
 
-    constructor(map: import('@2gis/jakarta').Map, options: SimulationOptions) {
+    constructor(map: import('@webmaps/jakarta').Map, options: SimulationOptions) {
         this.render = new Render(map, options.icons);
         this.random = createRandomFunction(this.options.randomSeed);
         this.humans = [];

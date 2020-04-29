@@ -13,7 +13,7 @@ export class Render {
     private pointBatch: PointBatch;
     private points: RenderPoint[];
 
-    constructor(private map: import('@2gis/jakarta').Map, icons: SimulationIcons) {
+    constructor(private map: import('@webmaps/jakarta').Map, icons: SimulationIcons) {
         this.canvas = document.createElement('canvas');
         this.canvas.style.position = 'absolute';
         this.canvas.style.left = '0';

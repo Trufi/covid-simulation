@@ -8,7 +8,7 @@
 
 ```ts
 import { Simulation } from '@webmaps/covid-simulation';
-import { MapClass } from '@2gis/jakarta';
+import { MapClass } from '@webmaps/jakarta';
 
 const map = new MapClass(document.getElementById('map'), {
     center: [82.93024, 55.01605],
