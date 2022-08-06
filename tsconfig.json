@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "types": ["@2gis/gl-matrix"],
+        "types": ["@2gis/gl-matrix", "2gl", "@2gis/mapgl/global"],
         "target": "es5",
         "module": "es2015",
         "moduleResolution": "node",

@@ -1,18 +1,24 @@
 # Covid Simulation
 
-Демка: http://artifacts-server.web-staging.2gis.ru/WebMaps/covid-simulation/latest/build/index.html
+Simulation of people moving throughout the city to demonstrate Covid-19 spreading visually on the map. The goal is to show that staying at home is the best option.
 
-Для симуляции обязательно в опциях нужно указать URL до данных. Данные можно взять отсюда https://gitlab.2gis.ru/WebMaps/covid-simulation/-/tree/master/assets.
+![preview](preview.png)
 
-Пример, как можно подключить симуляцию в карту:
+[See a demo](https://trufi.github.io/covid-simulation/)
+
+## Setup
+
+You must set the data URL for the simulation. You can get the data from the `assets` folder.
+
+An example of simulation setting with 2GIS MapGL API:
 
 ```ts
 import { Simulation } from '@webmaps/covid-simulation';
-import { MapClass } from '@webmaps/jakarta';
 
-const map = new MapClass(document.getElementById('map'), {
+const map = new mapgl.Map('KEY', {
     center: [82.93024, 55.01605],
     zoom: 12,
+    key: 'YOUR_2GIS_API_KEY',
 });
 
 const icons = {
@@ -21,7 +27,7 @@ const icons = {
     immune: { width: 10, height: 10, url: 'IMMUNE_ICON_URL' },
 };
 
-// Старт симуляции
+// Start of the simulation
 const simulation = new Simulation(map, { icons });
 
 simulation.start({
@@ -35,83 +41,83 @@ simulation.start({
     diseaseStartCount: 50,
     humanSpeed: 100,
     humanDeviation: 0.5,
-    dataUrl: './assets/nsk.json', // Обязательно нужно указать, где лежат данные для симуляции
+    dataUrl: './assets/nsk.json', // You must set the data URL
 });
 
-// Запрос за статистикой
-const stats = simulation.getStat(); // Вернет SimulationStat[]
+// Request for the statistics
+const stats = simulation.getStat(); // Returns SimulationStat[]
 
-// Остановка симуляции и удаление всех точек
+// Stop the simulation and remove all points
 simulation.stop();
 ```
 
-где:
+where:
 
 ```ts
 interface SimulationStartOptions {
     /**
-     * Весь рандом в симуляции детерминированные, это его первоначальное зерно
+     * Random is determined in the simulation. That's the first seed of it.
      */
     randomSeed: number;
 
     /**
-     * Расстояние в метрах, через которое передается заражение
+     * The distance in meters of disease spreading between humans
      */
     diseaseRange: number;
 
     /**
-     * Время в секундах, через которое наступает имуннитет после заражения
+     * The time in seconds when an immunity comes after the infection
      */
     immunityAfter: number;
 
     /**
-     * Время в секундах, которое человек проводит в доме, после того как в него зайдет
+     * The time in seconds that any human spend in his home after they has come there
      */
     waitAtHome: number;
 
     /**
-     * Время в секундах, которое человек проводит на улице, после чего будет первым делом будет стараться заходить в дом
+     * The time in seconds that a human spends on the street, after which they will first try to enter a house.
      */
     timeOutside: number;
 
     /**
-     * Относительное отклонение параметров immunityAfter, waitAtHome, timeOutside.
-     * Принимает значения от 0 до 1.
-     * Итоговый параметр для каждого человека высчитывается по формуле:
+     * Relative deviation of parameters immunityAfter, waitAtHome, timeOutside.
+     * Gets values from 0 to 1.
+     * The final parameter for each human is calculated by the formula:
      *   parameter = parameter + (random() - 0.5) * humanDeviation * parameter
      */
     humanDeviation: number;
 
     /**
-     * Общее количество людей
+     * Total amount of humans
      */
     humansCount: number;
 
     /**
-     * Количество людей, которые никогда не будут двигаться, такие люди появляются сразу в домах
+     * The number of humans who will never move, such people appear immediately in houses
      */
     humansStop: number;
 
     /**
-     * Количество людей, которые заражены при старте
+     * The number of humans who are infected at the start
      */
     diseaseStartCount: number;
 
     /**
-     * Скорость людей в папугаях
+     * The speed of people in something-something
      */
     humanSpeed: number;
 
     /**
-     * URL, с которого будут скачиваться данные для симуляции
+     * The URL from which the simulation data will be downloaded
      */
     dataUrl: string;
 }
 
 interface SimulationStat {
-    time: number; // количество мс со старта
-    disease: number; // количество больных
-    immune: number; // кол-во уже с иммунитетом
-    virgin: number; // не тех и не других
+    time: number; // amount of milliseconds from the start
+    disease: number; // amount of sick humans
+    immune: number; // amount of humans with immunity
+    virgin: number; // not those and not others
 }
 ```

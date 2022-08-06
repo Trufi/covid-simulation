@@ -56,60 +56,60 @@ export interface SimulationOptions {
 
 export interface SimulationStartOptions {
     /**
-     * Весь рандом в симуляции детерминированные, это его первоначальное зерно
+     * Random is determined in the simulation. That's the first seed of it.
      */
     randomSeed: number;
 
     /**
-     * Расстояние в метрах, через которое передается заражение
+     * The distance in meters of disease spreading between humans
      */
     diseaseRange: number;
 
     /**
-     * Время в секундах, через которое наступает имуннитет после заражения
+     * The time in seconds when an immunity comes after the infection
      */
     immunityAfter: number;
 
     /**
-     * Время в секундах, которое человек проводит в доме, после того как в него зайдет
+     * The time in seconds that any human spend in his home after they has come there
      */
     waitAtHome: number;
 
     /**
-     * Время в секундах, которое человек проводит на улице, после чего будет первым делом будет стараться заходить в дом
+     * The time in seconds that a human spends on the street, after which they will first try to enter a house.
      */
     timeOutside: number;
 
     /**
-     * Относительное отклонение параметров immunityAfter, waitAtHome, timeOutside.
-     * Принимает значения от 0 до 1.
-     * Итоговый параметр для каждого человека высчитывается по формуле:
-     * parameter = parameter + (random() - 0.5) * humanDeviation * parameter
+     * Relative deviation of parameters immunityAfter, waitAtHome, timeOutside.
+     * Gets values from 0 to 1.
+     * The final parameter for each human is calculated by the formula:
+     *   parameter = parameter + (random() - 0.5) * humanDeviation * parameter
      */
     humanDeviation: number;
 
     /**
-     * Общее количество людей
+     * Total amount of humans
      */
     humansCount: number;
 
     /**
-     * Количество людей, которое никогда не будет двигаться. Такие люди появляются сразу в домах.
+     * The number of humans who will never move, such people appear immediately in houses
      */
     humansStop: number;
 
     /**
-     * Количество людей, которые заражены при старте
+     * The number of humans who are infected at the start
      */
     diseaseStartCount: number;
 
     /**
-     * Скорость людей в папугаях
+     * The speed of people in something-something
      */
     humanSpeed: number;
 
     /**
-     * URL, с которого будут скачиваться данные для симуляции
+     * The URL from which the simulation data will be downloaded
      */
     dataUrl: string;
 }

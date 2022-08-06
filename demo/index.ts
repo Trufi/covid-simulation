@@ -1,4 +1,3 @@
-import { MapClass } from '@webmaps/jakarta';
 import * as dat from 'dat.gui';
 
 import { SimulationStartOptions, SimulationIcons } from '../src/types';
@@ -77,11 +76,13 @@ const cityOptions = {
     ...defaultCityOptions,
 };
 
-const map = new MapClass(document.getElementById('map') as HTMLDivElement, {
+const map = new mapgl.Map('map', {
     center: [82.93, 55.01],
     zoom: mapOptions.zoom,
     rotation: mapOptions.rotation,
     pitch: mapOptions.pitch,
+    key: '042b5b75-f847-4f2a-b695-b5f58adc9dfd',
+    zoomControl: false,
 });
 
 window.addEventListener('resize', () => map.invalidateSize());

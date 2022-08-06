@@ -1,13 +1,9 @@
 {
-    "name": "@webmaps/covid-simulation",
+    "name": "covid-simulation",
     "version": "0.0.18",
     "description": "Covid Simulation",
     "main": "dist/simulation.js",
     "typings": "dist/es6/src/index.d.ts",
-    "repository": {
-        "type": "git",
-        "url": "git+https://gitlab.2gis.ru/WebMaps/covid-simulation.git"
-    },
     "author": {
         "name": "Mstislav Zhivodkov",
         "email": "stevemyz@gmail.com",
@@ -27,9 +23,9 @@
         "prepublishOnly": "rm -rf dist && npm run build"
     },
     "dependencies": {
-        "@webmaps/jakarta": "15.0.0",
         "2gl": "^0.8.0",
         "@2gis/gl-matrix": "^2.4.6",
+        "@2gis/mapgl": "^1.29.0",
         "@types/kdbush": "^3.0.0",
         "dat.gui": "^0.7.6",
         "kdbush": "^3.0.0",
@@ -44,8 +40,6 @@
         "simplify-js": "^1.2.4",
         "ts-loader": "^6.2.1",
         "ts-node": "^8.6.2",
-        "tslint": "^6.0.0",
-        "tslint-eslint-rules": "^5.4.0",
         "typescript": "^3.7.5",
         "webpack": "^4.41.5",
         "webpack-cli": "^3.3.10",

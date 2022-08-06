@@ -13,7 +13,7 @@ export class Render {
     private pointBatch: PointBatch;
     private points: RenderPoint[];
 
-    constructor(private map: import('@webmaps/jakarta').Map, icons: SimulationIcons) {
+    constructor(private map: mapgl.Map, icons: SimulationIcons) {
         this.canvas = document.createElement('canvas');
         this.canvas.style.position = 'absolute';
         this.canvas.style.left = '0';
@@ -21,16 +21,7 @@ export class Render {
         this.canvas.style.pointerEvents = 'none';
         this.canvas.style.background = 'transparent';
 
-        const mapCanvas = map.modules.layout.mapContainer.querySelector('canvas');
-        const mapCanvasNextSibling = mapCanvas?.nextSibling;
-        if (!mapCanvas) {
-            throw new Error('Map canvas not found');
-        }
-        if (!mapCanvasNextSibling) {
-            throw new Error('Map html markers container not found');
-        }
-
-        map.modules.layout.mapContainer.insertBefore(this.canvas, mapCanvasNextSibling);
+        map.getContainer().appendChild(this.canvas);
 
         this.points = [];
 
@@ -92,8 +83,11 @@ export class Render {
 
         const { gl } = this.renderContext;
         gl.clear(gl.COLOR_BUFFER_BIT);
-        const cameraMatrix = this.map.modules.renderer.vpMatrix;
-        this.pointBatch.render(cameraMatrix, this.map.getSize(), this.map.getZoom());
+        this.pointBatch.render(
+            this.map.getProjectionMatrix(),
+            this.map.getSize(),
+            this.map.getZoom(),
+        );
     }
 
     private updateSize = () => {
